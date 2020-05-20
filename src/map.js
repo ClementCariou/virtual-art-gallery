@@ -81,7 +81,7 @@ function genBorder(n, w, m) {
 	return path;
 }
 
-module.exports = function (n = 5, w = 0.9, m = 0.5, h = 7) {
+module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
 	let s = Math.pow(2, n + 2);
 	let border = genBorder(n, w, m).map((v) => [v[0] * s, v[1] * s]);
 	console.time('gen mesh');

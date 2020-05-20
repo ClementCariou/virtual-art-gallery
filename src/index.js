@@ -1,4 +1,10 @@
 'use strict';
+
+if (navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)) {
+	document.body.innerText = "This project doesn't work properly on mobile devices";
+	throw e;
+}
+
 const mat4 = require('gl-mat4');
 const fit = require('canvas-fit');
 
@@ -25,7 +31,7 @@ try {
 	drawPainting = require('./painting')(regl);
 	fps = require('./fps')(map.segments);
 } catch (e) {
-	document.body.innerText = "This project doesn't work on certain browser";
+	document.body.innerText = "This project doesn't work on certain browsers";
 	throw e;
 }
 
@@ -56,7 +62,7 @@ const reflexion = regl({
 regl.frame(({ time }) => {
 	fps.tick({ time });
 	placement.update(fps.pos);
-	regl.clear({ color: [0, 0, 0, 1] });
+	regl.clear({ color: [0, 0, 0, 1], depth: 1 });
 	context(() => {
 		reflexion(() => {
 			drawMap();
