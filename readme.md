@@ -1,13 +1,13 @@
-# Virtual Art Gallery
+# [Virtual Art Gallery](https://clementcariou.github.io/virtual-art-gallery/build)
 
-![screenshot](ArtGallery.png "App screenshot")
+[![screenshot](ArtGallery.png "App screenshot")](https://clementcariou.github.io/virtual-art-gallery/build)
 
 ## Description
 
-This project simulates an art gallery in your browser using REGL.
+This project simulates an art gallery in your browser using [REGL](https://github.com/regl-project/regl).
 It aims at reproducing the experience of a real art gallery.
-The architecture is generated using a 10km long 6th order Hilbert Curve.
-The paintings are asynchronously loaded from the ARTIC and placed on the walls.
+The architecture is generated using a 10km long 6th order [Hilbert Curve](https://en.wikipedia.org/wiki/Hilbert_curve).
+The paintings are asynchronously loaded from the [ARTIC](https://aggregator-data.artic.edu/home) and placed on the walls.
 
 You can use this project to display your own artworks. Futur changes will make this process simpler.
 
