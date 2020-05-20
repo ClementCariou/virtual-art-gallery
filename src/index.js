@@ -2,7 +2,7 @@
 
 if (navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)) {
 	document.body.innerText = "This project doesn't work properly on mobile devices";
-	throw e;
+	throw new Error("mobile device");
 }
 
 const mat4 = require('gl-mat4');
