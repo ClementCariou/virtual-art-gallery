@@ -11,8 +11,10 @@ try {
 		canvas,
 		extensions: [
 			//'angle_instanced_arrays',
-			'oes_texture_float',
 			'OES_element_index_uint',
+		],
+		optionalExtensions: [
+			//'oes_texture_float',
 			'EXT_texture_filter_anisotropic'
 		]
 	});

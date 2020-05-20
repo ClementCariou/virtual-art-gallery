@@ -14,12 +14,15 @@ resizeCanvas.width = resizeCanvas.height = 2048;
 const ctx = resizeCanvas.getContext('2d');
 ctx.mozImageSmoothingEnabled = false;
 ctx.webkitImageSmoothingEnabled = false;
-let aniso;
+let aniso = false;
 
 function loadImage(regl, url) {
-	aniso = aniso || regl._gl.getParameter(
-		regl._gl.getExtension('EXT_texture_filter_anisotropic').MAX_TEXTURE_MAX_ANISOTROPY_EXT
-	);
+	if (aniso === false) {
+		aniso = regl.hasExtension('EXT_texture_filter_anisotropic') ? regl._gl.getParameter(
+			regl._gl.getExtension('EXT_texture_filter_anisotropic').MAX_TEXTURE_MAX_ANISOTROPY_EXT
+		) : 0;
+		console.log(aniso);
+	}
 
 	return fetch(url)
 		.then((resp) => resp.blob())
