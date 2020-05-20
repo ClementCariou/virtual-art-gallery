@@ -81,7 +81,7 @@ function genBorder(n, w, m) {
 	return path;
 }
 
-module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
+module.exports = function (n = 5, w = 0.9, m = 0.5, h = 7) {
 	let s = Math.pow(2, n + 2);
 	let border = genBorder(n, w, m).map((v) => [v[0] * s, v[1] * s]);
 	console.time('gen mesh');
@@ -90,11 +90,12 @@ module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
 		.map(([[x1, y1], [x2, y2]]) => [Math.sign(y1 - y2), 0, Math.sign(x2 - x1)])
 		.flatMap((v) => Array(4).fill(v));
 	let position = segments.flat().flatMap(([x, y]) => [[x, 0, y], [x, h, y]]);
+	//Ignore short segments for collisions and painting placement
 	segments = segments.filter(([[ax, ay], [bx, by]]) => Math.hypot(ax - bx, ay - by) > 1);
 	//Add floor and ceilling
 	normal.push([0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]);
 	position.push([0, h, 0], [0, h, s], [s, h, 0], [s, h, s], [0, 0.01, 0], [s, 0.01, 0], [0, 0.01, s], [s, 0.01, s]);
-	let elements = Array(border.length - 1 + 8)
+	let elements = Array(position.length / 4)
 		.fill()
 		.flatMap((_, i) => [i * 4, i * 4 + 2, i * 4 + 1, i * 4 + 1, i * 4 + 2, i * 4 + 3]);
 	console.timeEnd('gen mesh');
