@@ -9,6 +9,8 @@ const baseURL = 'https://aggregator-data.artic.edu/api/v1/artworks/search';
 const query = '?query[bool][must][][term][classification_titles.keyword]=painting';
 const fields = '&fields=image_id,title,artist_display,date_display,category_titles';
 
+const resolutions = { "low": 512, "high": 1024 };
+
 const resizeCanvas = document.createElement('canvas');
 resizeCanvas.width = resizeCanvas.height = 2048;
 const ctx = resizeCanvas.getContext('2d');
@@ -16,7 +18,7 @@ ctx.mozImageSmoothingEnabled = false;
 ctx.webkitImageSmoothingEnabled = false;
 let aniso = false;
 
-function loadImage(regl, url) {
+function loadImage(regl, id, res) {
 	if (aniso === false) {
 		aniso = regl.hasExtension('EXT_texture_filter_anisotropic') ? regl._gl.getParameter(
 			regl._gl.getExtension('EXT_texture_filter_anisotropic').MAX_TEXTURE_MAX_ANISOTROPY_EXT
@@ -24,6 +26,7 @@ function loadImage(regl, url) {
 		console.log(aniso);
 	}
 
+	const url = noCors + `https://www.artic.edu/iiif/2/${id}/full/,${resolutions[res]}/0/default.jpg`;
 	return fetch(url)
 		.then((resp) => resp.blob())
 		.then((data) => createImageBitmap(data))
@@ -41,25 +44,22 @@ function loadImage(regl, url) {
 }
 
 module.exports = {
-	fetch: (regl, count = 10, resolution = 512, cbOne, cbAll) => {
+	fetch: (regl, count = 10, res = "low", cbOne, cbAll) => {
 		let from = Object.keys(paintingCache).length;
 		//console.log(from);
 		fetch(baseURL + query + fields + `&from=${from}&size=${count}`)
 			.then((r) => r.json())
 			.then((paintings) => {
-				paintings = paintings.data.filter((d) => d.image_id).map((d) => ({
-					...d,
-					url: noCors + `https://www.artic.edu/iiif/2/${d.image_id}/full/,${resolution}/0/default.jpg`
-				}));
+				paintings = paintings.data.filter((d) => d.image_id);
 				count = paintings.length;
 				paintings.map(p => {
-					if (paintingCache[p.url + resolution]) {
+					if (paintingCache[p.image_id]) {
 						if (--count === 0)
 							cbAll();
 						return;
 					}
-					paintingCache[p.url + resolution] = p;
-					loadImage(regl, p.url).then(([tex, aspect]) => {
+					paintingCache[p.image_id] = p;
+					loadImage(regl, p.image_id, res).then(([tex, aspect]) => {
 						cbOne({ ...p, tex, aspect });
 						if (--count === 0)
 							cbAll();
@@ -67,11 +67,11 @@ module.exports = {
 				})
 			});
 	},
-	load: (regl, p) => {
+	load: (regl, p, res = "low") => {
 		if (p.tex || p.loading)
 			return;
 		p.loading = true;
-		loadImage(regl, p.url).then(([tex]) => {
+		loadImage(regl, p.image_id, res).then(([tex]) => {
 			p.loading = false;
 			p.tex = tex
 		});

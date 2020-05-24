@@ -5,6 +5,9 @@ const mat4 = require('gl-mat4');
 const renderDist = 20;
 const loadDist = 20;
 const unloadDist = 40;
+let dynamicRes = "high";
+let dynamicResTimer;
+let dynamicResPeriod = 3000;
 
 // Apply riffle shuffle to sub-arrays
 function merge(dest, org, aStart, aEnd, bStart, bEnd) {
@@ -118,7 +121,7 @@ module.exports = (regl, segments) => {
         batch.push({ ...p, model });
     };
     // Fetch the first textures
-    texture.fetch(regl, 20, 512, loadPainting, () => fetching = false);
+    texture.fetch(regl, 20, dynamicRes, loadPainting, () => fetching = false);
     return {
         update: (p) => {
             // Estimate player position index
@@ -131,12 +134,18 @@ module.exports = (regl, segments) => {
             batch.slice(index + unloadDist).map(t => texture.unload(t));
             // Load and render close textures
             shownBatch = batch.slice(Math.max(0, index - renderDist), index + renderDist);
-            shownBatch.map(t => texture.load(regl, t));
+            shownBatch.map(t => texture.load(regl, t, dynamicRes));
             shownBatch = shownBatch.filter(t => t.tex);
             // Fetch new textures
-            if (fetching || index <= batch.length - loadDist) return;
-            texture.fetch(regl, 10, 512, loadPainting, () => fetching = false);
-            fetching = true;
+            if (index <= batch.length - loadDist) return;
+            if (!fetching) {
+                texture.fetch(regl, 10, dynamicRes, loadPainting, () => fetching = false);
+                fetching = true;
+            }
+            // Update dynamic resolution
+            dynamicRes = "low";
+            if (dynamicResTimer) clearTimeout(dynamicResTimer);
+            dynamicResTimer = setTimeout(() => dynamicRes = "high", dynamicResPeriod);
         },
         batch: () => shownBatch
     };
