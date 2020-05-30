@@ -1,6 +1,9 @@
 'use strict';
 
+const text = require('./text');
+
 module.exports = (regl) => {
+	const drawText = text.draw(regl);
 	const painting =
 		regl({
 			frag: `
@@ -119,5 +122,6 @@ module.exports = (regl) => {
 	return function (batch) {
 		painting(batch);
 		shadow(batch);
+		drawText(batch);
 	}
 };

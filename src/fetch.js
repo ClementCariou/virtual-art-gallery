@@ -1,5 +1,7 @@
 'strict mode';
 
+const text = require('./text');
+
 let paintingCache = {};
 let unusedTextures = [];
 
@@ -7,7 +9,7 @@ let unusedTextures = [];
 const noCors = 'https://api.allorigins.win/raw?url=';
 const baseURL = 'https://aggregator-data.artic.edu/api/v1/artworks/search';
 const query = '?query[bool][must][][term][classification_titles.keyword]=painting';
-const fields = '&fields=image_id,title,artist_display,date_display,category_titles';
+const fields = '&fields=image_id,title,artist_title';
 
 const resolutions = { "low": 512, "high": 1024 };
 
@@ -18,7 +20,7 @@ ctx.mozImageSmoothingEnabled = false;
 ctx.webkitImageSmoothingEnabled = false;
 let aniso = false;
 
-function loadImage(regl, id, res) {
+function loadImage(regl, p, res) {
 	if (aniso === false) {
 		aniso = regl.hasExtension('EXT_texture_filter_anisotropic') ? regl._gl.getParameter(
 			regl._gl.getExtension('EXT_texture_filter_anisotropic').MAX_TEXTURE_MAX_ANISOTROPY_EXT
@@ -26,7 +28,7 @@ function loadImage(regl, id, res) {
 		console.log(aniso);
 	}
 
-	const url = noCors + `https://www.artic.edu/iiif/2/${id}/full/,${resolutions[res]}/0/default.jpg`;
+	const url = noCors + `https://www.artic.edu/iiif/2/${p.image_id}/full/,${resolutions[res]}/0/default.jpg`;
 	return fetch(url)
 		.then((resp) => resp.blob())
 		.then((data) => createImageBitmap(data))
@@ -39,7 +41,9 @@ function loadImage(regl, id, res) {
 				mipmap: 'nice',
 				aniso,
 				flipY: true
-			}), image.width / image.height];
+			}),
+			text.init((unusedTextures.pop() || regl.texture), p.title + " - " + p.artist_title),
+			image.width / image.height];
 		});
 }
 
@@ -59,8 +63,8 @@ module.exports = {
 						return;
 					}
 					paintingCache[p.image_id] = p;
-					loadImage(regl, p.image_id, res).then(([tex, aspect]) => {
-						cbOne({ ...p, tex, aspect });
+					loadImage(regl, p, res).then(([tex, text, aspect]) => {
+						cbOne({ ...p, tex, text, aspect });
 						if (--count === 0)
 							cbAll();
 					});
@@ -71,15 +75,20 @@ module.exports = {
 		if (p.tex || p.loading)
 			return;
 		p.loading = true;
-		loadImage(regl, p.image_id, res).then(([tex]) => {
+		loadImage(regl, p, res).then(([tex, text]) => {
 			p.loading = false;
-			p.tex = tex
+			p.tex = tex;
+			p.text = text;
 		});
 	},
 	unload: (p) => {
 		if (p.tex) {
 			unusedTextures.push(p.tex);
 			p.tex = undefined;
+		}
+		if (p.text) {
+			unusedTextures.push(p.text);
+			p.text = undefined;
 		}
 	}
 };

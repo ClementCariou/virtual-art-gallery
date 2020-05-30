@@ -118,7 +118,10 @@ module.exports = (regl, segments) => {
         mat4.fromTranslation(model, pos);
         mat4.scale(model, model, scale);
         mat4.rotateY(model, model, angle);
-        batch.push({ ...p, model });
+        const textmodel = [];
+        mat4.fromTranslation(textmodel, [pos[0], 1.6 - globalScale, pos[2]]);
+        mat4.rotateY(textmodel, textmodel, angle);
+        batch.push({ ...p, model, textmodel });
     };
     // Fetch the first textures
     texture.fetch(regl, 20, dynamicRes, loadPainting, () => fetching = false);
