@@ -29,9 +29,8 @@ npm build
 
 ## Evolutions
 
-- dynamic painting resolution
 - search, filter and sort
-- painting metadata display / redirect
+- painting metadata redirect
 - painting logarithm scale
 - dynamic ambiant sound
 - props for variety
@@ -42,6 +41,5 @@ npm build
 - load time (we are using a reverse proxy to get around the cors policy)
 - random camera rotation
 - incorrect painting shadows
-- floor pattern aliasing
 - ceiling lighting seams
 - no specular

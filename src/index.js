@@ -18,6 +18,7 @@ try {
 		extensions: [
 			//'angle_instanced_arrays',
 			'OES_element_index_uint',
+			'OES_standard_derivatives'
 		],
 		optionalExtensions: [
 			//'oes_texture_float',
@@ -44,7 +45,10 @@ const context = regl({
 	uniforms: {
 		view: fps.view,
 		yScale: 1.0,
-		proj: ({ viewportWidth, viewportHeight }) =>
+		proj: ({
+				viewportWidth,
+				viewportHeight
+			}) =>
 			mat4.perspective(proj, Math.PI / 3, viewportWidth / viewportHeight, 0.1, 100)
 	}
 });
@@ -59,10 +63,17 @@ const reflexion = regl({
 	}
 });
 
-regl.frame(({ time }) => {
-	fps.tick({ time });
+regl.frame(({
+	time
+}) => {
+	fps.tick({
+		time
+	});
 	placement.update(fps.pos);
-	regl.clear({ color: [0, 0, 0, 1], depth: 1 });
+	regl.clear({
+		color: [0, 0, 0, 1],
+		depth: 1
+	});
 	context(() => {
 		reflexion(() => {
 			drawMap();

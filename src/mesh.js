@@ -3,6 +3,7 @@
 module.exports = (regl, data) => {
     return regl({
         frag: `
+        #extension GL_OES_standard_derivatives : enable
         precision mediump float;
         varying vec3 v_normal;
         varying vec3 v_pos;
@@ -24,33 +25,41 @@ module.exports = (regl, data) => {
 
         float fbm3(vec3 p) {
             float f = 0.0, x;
-            for(int i = 1; i <= 9; ++i)
-            {
+            for(int i = 1; i <= 9; ++i) {
                 x = exp2(float(i));
                 f += (noise(p * x) - 0.5) / x;
             }
             return f;
         }
 
+        //https://iquilezles.org/www/articles/filterableprocedurals/filterableprocedurals.htm
         vec3 marble(vec2 p) {
-            p.x+=2.0;
-            float border_size=0.015;
-            float corner_size=0.015;
+            const float N = 1.005; // grid ratio
+            // filter kernel
+            vec2 w = max(abs(dFdx(p)), abs(dFdy(p)));
+            vec2 a = p + 0.5*w;
+            vec2 b = p - 0.5*w;
+            vec2 i = (floor(a)+min(fract(a)*N,1.0)-
+                        floor(b)-min(fract(b)*N,1.0))/(N*w);
             
-            vec2 c0=floor(p);
-            vec2 c1=(p-c0)-vec2(0.5);
-            vec2 rc1=(c1.x*vec2(1.0)+c1.y*vec2(1.0,-1.0))*0.6;
-            
-            vec3 ccol=mix(vec3(1.0,1.0,0.5)*0.1,vec3(max(0.0,fbm2(p)*0.5)),0.75);
-            vec3 pat=mix(vec3(1.0,1.0,0.6)*0.4,vec3(1.0,1.0,0.8)*0.7,1.0-smoothstep(0.4,0.8,0.5+fbm2(c0*2.0+p*1.0+cos(p.yx*2.0)*0.4)))+
-                vec3(max(0.0,fbm2(p*0.7)*1.0))+vec3(smoothstep(0.2,0.3,fbm2(-p)))*0.2;
-            vec3 bcol=mix(pat,vec3(1.0,1.0,0.5)*0.1,0.5);
-            
-            float br=max(smoothstep(0.5-border_size,0.5,abs(c1.y)),smoothstep(0.5-border_size,0.5,abs(c1.x)));
-            float cr=max(smoothstep(0.5-corner_size,0.5,abs(rc1.y)),smoothstep(0.5-corner_size,0.5,abs(rc1.x)));
-            return mix(pat,mix(bcol,ccol,cr),max(cr,br))*0.8;
+            vec3 pat=mix(vec3(1.0,1.0,0.8)*0.4,vec3(1.0,1.0,0.8)*0.7,1.0-smoothstep(0.4,0.8,0.5+fbm2(floor(p)*2.0+p*1.0+cos(p.yx*2.0)*0.4)))+
+                        vec3(max(0.0,fbm2(p*0.7)*1.0))+vec3(smoothstep(0.2,0.3,fbm2(-p)))*0.2;
+
+            return (i.x*i.y*2.0-1.0) * pat;
         }
 
+        float border(float y) {
+            const float h = 0.04;
+            const float N = 1.0 + h;
+            y = y / 8.0 - h / 2.0;
+            // filter kernel
+            float w = max(abs(dFdx(y)), abs(dFdy(y)));
+            float a = y + 0.5*w;
+            float b = y - 0.5*w;
+            float i = (floor(a)+min(fract(a)*N,1.0)-
+                        floor(b)-min(fract(b)*N,1.0))/(N*w);
+            return i;
+        }
 
         vec3 hsv2rgb(vec3 c) {
             vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
@@ -80,12 +89,12 @@ module.exports = (regl, data) => {
             }
             //totalLight *= 0.005*noise(v_pos*vec3(50.0,50.0,50.0))+0.995;
             if(v_normal.y > 0.0){
-                totalLight *= 0.7*marble(v_pos.xz + vec2(0.5)) + 1.0;
-            }else{
-                totalLight *= 0.5*smoothstep(0.9, 1.0, v_pos.y*5.0) + 0.5;
+                totalLight *= 0.5*marble(v_pos.xz + vec2(0.5)) + 1.0;
+            }else if(v_normal.y == 0.0){
+                totalLight *= 0.5*border(v_pos.y) + 0.5;
             }
             totalLight = pow(totalLight, vec3(1.0/2.2));
-            gl_FragColor = vec4(totalLight, 1.96-v_normal.y);
+            gl_FragColor = vec4(totalLight, 1.975-v_normal.y);
         }`,
 
         vert: `
