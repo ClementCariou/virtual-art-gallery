@@ -5,9 +5,11 @@ const mat4 = require('gl-mat4');
 const renderDist = 20;
 const loadDist = 20;
 const unloadDist = 40;
-let dynamicRes = "high";
+
+const dynamicResThreshold = 2; // Enable dynamic resolution if the downlink speed is faster than 2 mb/s
+const dynamicResPeriod = 3000; // Load at low res if we load paintings 3 secs after the last time
+let dynamicRes = navigator.connection.downlink > dynamicResThreshold ? "high" : "low";
 let dynamicResTimer;
-let dynamicResPeriod = 3000;
 
 // Apply riffle shuffle to sub-arrays
 function merge(dest, org, aStart, aEnd, bStart, bEnd) {
@@ -146,9 +148,11 @@ module.exports = (regl, segments) => {
                 fetching = true;
             }
             // Update dynamic resolution
-            dynamicRes = "low";
-            if (dynamicResTimer) clearTimeout(dynamicResTimer);
-            dynamicResTimer = setTimeout(() => dynamicRes = "high", dynamicResPeriod);
+            if (navigator.connection.downlink > dynamicResThreshold) {
+                dynamicRes = "low";
+                if (dynamicResTimer) clearTimeout(dynamicResTimer);
+                dynamicResTimer = setTimeout(() => dynamicRes = "high", dynamicResPeriod);
+            }
         },
         batch: () => shownBatch
     };
