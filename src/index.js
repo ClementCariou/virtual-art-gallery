@@ -6,15 +6,10 @@ if (navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)) {
 }
 
 const mat4 = require('gl-mat4');
-const fit = require('canvas-fit');
-
-const canvas = document.body.appendChild(document.createElement('canvas'));
-window.addEventListener('resize', fit(canvas), false);
 
 let regl, map, drawMap, placement, drawPainting, fps;
 try {
 	regl = require('regl')({
-		canvas,
 		extensions: [
 			//'angle_instanced_arrays',
 			'OES_element_index_uint',
