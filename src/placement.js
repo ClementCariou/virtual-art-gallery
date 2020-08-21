@@ -6,9 +6,8 @@ const renderDist = 20;
 const loadDist = 20;
 const unloadDist = 40;
 
-const dynamicResThreshold = 2; // Enable dynamic resolution if the downlink speed is faster than 2 mb/s
-const dynamicResPeriod = 3000; // Load at low res if we load paintings 3 secs after the last time
-let dynamicRes = navigator.connection.downlink > dynamicResThreshold ? "high" : "low";
+const dynamicResPeriod = 3000;
+let dynamicRes = "high";
 let dynamicResTimer;
 
 // Apply riffle shuffle to sub-arrays
@@ -148,11 +147,9 @@ module.exports = (regl, segments) => {
                 fetching = true;
             }
             // Update dynamic resolution
-            if (navigator.connection.downlink > dynamicResThreshold) {
-                dynamicRes = "low";
-                if (dynamicResTimer) clearTimeout(dynamicResTimer);
-                dynamicResTimer = setTimeout(() => dynamicRes = "high", dynamicResPeriod);
-            }
+            dynamicRes = "low";
+            if (dynamicResTimer) clearTimeout(dynamicResTimer);
+            dynamicResTimer = setTimeout(() => dynamicRes = "high", dynamicResPeriod);
         },
         batch: () => shownBatch
     };

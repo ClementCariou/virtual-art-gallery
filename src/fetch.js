@@ -11,7 +11,15 @@ const baseURL = 'https://aggregator-data.artic.edu/api/v1/artworks/search';
 const query = '?query[bool][must][][term][classification_titles.keyword]=painting';
 const fields = '&fields=image_id,title,artist_title';
 
-const resolutions = { "low": 512, "high": 1024 };
+const dynamicResThreshold = 2;
+
+function resolution(quality) {
+	const factor = !navigator.connection || navigator.connection.downlink > dynamicResThreshold ? 1 : 0.5;
+	return {
+		"low": 512,
+		"high": 1024
+	} [quality] * factor;
+}
 
 const resizeCanvas = document.createElement('canvas');
 resizeCanvas.width = resizeCanvas.height = 2048;
@@ -28,7 +36,7 @@ function loadImage(regl, p, res) {
 		console.log(aniso);
 	}
 
-	const url = noCors + `https://www.artic.edu/iiif/2/${p.image_id}/full/,${resolutions[res]}/0/default.jpg`;
+	const url = noCors + `https://www.artic.edu/iiif/2/${p.image_id}/full/,${resolution(res)}/0/default.jpg`;
 	return fetch(url)
 		.then((resp) => resp.blob())
 		.then((data) => createImageBitmap(data))
@@ -43,7 +51,8 @@ function loadImage(regl, p, res) {
 				flipY: true
 			}),
 			text.init((unusedTextures.pop() || regl.texture), p.title + " - " + p.artist_title),
-			image.width / image.height];
+				image.width / image.height
+			];
 		});
 }
 
