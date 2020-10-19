@@ -53,7 +53,7 @@ function loadImage(regl, p, res) {
 			text.init((unusedTextures.pop() || regl.texture), p.title + " - " + p.artist_title),
 				image.width / image.height
 			];
-		});
+		}).catch(() => loadImage(regl, p, "low")); //downgrade if the image isn't available at high res
 }
 
 module.exports = {
