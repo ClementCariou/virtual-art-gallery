@@ -1,5 +1,5 @@
 'use strict';
-const texture = require('./fetch');
+const texture = require('./image');
 const mat4 = require('gl-mat4');
 
 const renderDist = 20;
