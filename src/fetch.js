@@ -7,7 +7,8 @@ let unusedTextures = [];
 
 //const noCors = 'https://cors-anywhere.herokuapp.com/';
 const noCors = 'https://api.allorigins.win/raw?url=';
-const baseURL = 'https://aggregator-data.artic.edu/api/v1/artworks/search';
+const searchURL = 'https://aggregator-data.artic.edu/api/v1/artworks/search';
+const imageURL = ({image_id}, res) => `https://www.artic.edu/iiif/2/${image_id}/full/,${resolution(res)}/0/default.jpg`;
 const query = '?query[bool][must][][term][classification_titles.keyword]=painting';
 const fields = '&fields=image_id,title,artist_title';
 
@@ -36,7 +37,7 @@ function loadImage(regl, p, res) {
 		console.log(aniso);
 	}
 
-	const url = noCors + `https://www.artic.edu/iiif/2/${p.image_id}/full/,${resolution(res)}/0/default.jpg`;
+	const url = noCors + imageURL(p, res);
 	return fetch(url)
 		.then((resp) => resp.blob())
 		.then((data) => createImageBitmap(data))
@@ -60,7 +61,7 @@ module.exports = {
 	fetch: (regl, count = 10, res = "low", cbOne, cbAll) => {
 		let from = Object.keys(paintingCache).length;
 		//console.log(from);
-		fetch(baseURL + query + fields + `&from=${from}&size=${count}`)
+		fetch(searchURL + query + fields + `&from=${from}&size=${count}`)
 			.then((r) => r.json())
 			.then((paintings) => {
 				paintings = paintings.data.filter((d) => d.image_id);
