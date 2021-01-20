@@ -1,0 +1,29 @@
+{
+    "images": [
+        {
+            "image_id": 0,
+            "title": "Image 1",
+            "file": "1.png"
+        },
+        {
+            "image_id": 1,
+            "title": "Image 2",
+            "file": "2.png"
+        },
+        {
+            "image_id": 2,
+            "title": "Image 3",
+            "file": "3.png"
+        },
+        {
+            "image_id": 3,
+            "title": "Image 4",
+            "file": "4.png"
+        },
+        {
+            "image_id": 4,
+            "title": "Image 5",
+            "file": "5.png"
+        }
+    ]
+}
