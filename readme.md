@@ -8,8 +8,7 @@ This project simulates an art gallery in your browser using [REGL](https://githu
 It aims at reproducing the experience of a real art gallery.
 The architecture is generated using a 10km long 6th order [Hilbert Curve](https://en.wikipedia.org/wiki/Hilbert_curve).
 The paintings are asynchronously loaded from the [ARTIC](https://aggregator-data.artic.edu/home) and placed on the walls.
-
-You can use this project to display your own artworks. Futur changes will make this process simpler.
+You can use this project to display your own artworks.
 
 ## Setup
 
@@ -27,8 +26,24 @@ Build :
 npm build
 ```
 
+## API
+
+The [api.js](src/api.js) file can be edited to display your own artworks. It should exports a module with two asynchronious functions :
+```js
+// Called when a new page of images need to be loaded
+fetchList(from, to) // Returns an obj {image_id}
+// Called for each image loading
+fetchImage(obj, advicedResolution) // Returns painting infos {title, image}
+```
+
+### Local images
+
+In [api.js](src/api.js), a working example of local images loading is commented. 
+
 ## Evolutions
 
+- better api
+- example folder
 - search, filter and sort
 - painting metadata redirect
 - painting logarithm scale
