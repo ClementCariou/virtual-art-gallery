@@ -10,18 +10,6 @@ const dynamicResPeriod = 3000;
 let dynamicRes = "high";
 let dynamicResTimer;
 
-// Apply riffle shuffle to sub-arrays
-const merge = (dest, org, aStart, aEnd, bStart, bEnd) => {
-    let a = org.slice(aStart, aEnd).reverse();
-    let b = org.slice(bStart, bEnd);
-    let prop = a.length / b.length;
-    while (a.length > 0 && b.length > 0)
-        dest.push(a.length / b.length > prop ? a.pop() : b.pop());
-    while (a.length > 0) dest.push(a.pop());
-    while (b.length > 0) dest.push(b.pop());
-    return dest;
-};
-
 const culling = (ppos, pangle, fovx, {vseg, angle}) => {
     const sx1 = vseg[0][0] - ppos[0];
     const sy1 = vseg[0][1] - ppos[2];
@@ -37,78 +25,12 @@ const culling = (ppos, pangle, fovx, {vseg, angle}) => {
     return true;
 };
 
-module.exports = (regl, segments) => {
-    // split segments
-    console.time('split segments');
-    segments = segments.flatMap(s => {
-        // Calculate subsegment length
-        let l = Math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]);
-        l = Math.ceil(l / 8 - 0.3);
-        if (l == 0) return [];
-        // Lerp coordinates
-        let res = [];
-        for (let t = 0; t <= 1; t += 1 / l)
-            res.push([s[0][0] * (1 - t) + s[1][0] * t, s[0][1] * (1 - t) + s[1][1] * t]);
-        // Form pairs of coordinates
-        return res.slice(0, -1).map((r, i) => [r, res[i + 1]]);
-    });
-    console.timeEnd('split segments');
-    // reorder segments
-    console.time('reorder segments');
-    let segs = segments;
-    segments = [];
-    let i = 0, j = segs.length - 1;
-    let it = [], jt = [], len = 0;
-    //console.log(segs);
-    //debugger;
-    //let temp = [...Array(segs.length)].map((_, i) => i);
-    while (i < j) {
-        let xi = Math.floor((segs[i][0][0] + segs[i][1][0]) / 32);
-        let yi = Math.floor((segs[i][0][1] + segs[i][1][1]) / 32);
-        let xj = Math.floor((segs[j][0][0] + segs[j][1][0]) / 32);
-        let yj = Math.floor((segs[j][0][1] + segs[j][1][1]) / 32);
-        //console.log(i, j, xi, yi, xj, yj);
-        if (xi == xj && yi == yj) {
-            //console.log("converge");
-            //console.log(temp.slice(i - len, i + 1), temp.slice(j, j + len + 1));
-            merge(segments, segs, i - len, i + 1, j, j + len + 1);
-            it = []; jt = []; len = 0;
-        } else {
-            //console.log("diverge");
-            let findi = jt.findIndex(([x, y]) => x === xi && y === yi);
-            let findj = it.findIndex(([x, y]) => x === xj && y === yj);
-            //console.log(findi, findj);
-            if (findi !== -1) {
-                //console.log(temp.slice(i - len, i + 1), temp.slice(j + len - findi, j + len + 1));
-                merge(segments, segs, i - len, i + 1, j + len - findi, j + len + 1);
-                j += len - findi; //rollback
-                it = []; jt = []; len = 0;
-            } else if (findj !== -1) {
-                //console.log(temp.slice(j, j + len + 1), temp.slice(i - len, i - len + findj + 1));
-                merge(segments, segs, i - len, i - len + findj + 1, j, j + len + 1);
-                i -= len - findj; //rollback
-                it = []; jt = []; len = 0;
-            } else {
-                it.push([xi, yi]);
-                jt.push([xj, yj]);
-                len++;
-            }
-        }
-        i++; j--;
-    }
-    //console.log(temp.slice(i - len, j + len + 1));
-    segments.push(...segs.slice(i - len, j + len + 1));
-    console.timeEnd('reorder segments');
-    console.log(segments.length + " available painting placements");
-    const areas = segments.map(seg => [
-        Math.round((seg[0][0] + seg[1][0]) / 16 + 0.5) * 8 - 4,
-        Math.round((seg[0][1] + seg[1][1]) / 16 + 0.5) * 8 - 4
-    ]);
+module.exports = (regl, {placements, getAreaIndex}) => {
     //console.log(areas);
     let batch = [], shownBatch = [];
     let fetching = true;
-    let loadPainting = (p) => {
-        const seg = segments[batch.length];
+    const loadPainting = (p) => {
+        const seg = placements[batch.length];
         // Calculate painting position, direction, normal angle and scale
         const dir = [seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]];
         const norm = [seg[1][1] - seg[0][1], seg[0][0] - seg[1][0]];
@@ -149,9 +71,7 @@ module.exports = (regl, segments) => {
     return {
         update: (pos, angle, fovx) => {
             // Estimate player position index
-            let index = areas.findIndex(a => Math.abs(a[0] - pos[0]) < 4 && Math.abs(a[1] - pos[2]) < 4);
-            if (index === -1) // Middle of room => search neighbour cells
-                index = areas.findIndex(a => Math.abs(a[0] - pos[0]) + Math.abs(a[1] - pos[2]) < 8);
+            let index = getAreaIndex(pos[0], pos[2], 4);
             if (index === -1) return; // Out of bound => do nothing
             // Unload far textures
             batch.slice(0, Math.max(0, index - unloadDist)).map(t => texture.unload(t));

@@ -23,8 +23,8 @@ const sdLine = (p, a, b, tmp1, tmp2) => {
 	return vec3.dist(pa, vec3.scale(ba, ba, h));
 };
 
-module.exports = function (segments) {
-	var colliders = segments.map(([[ax, ay], [bx, by]]) => [[ax, height, ay], [bx, height, by]]);
+module.exports = function ({getGridSegments}) {
+	//var colliders = segments.map(([[ax, ay], [bx, by]]) => [[ax, height, ay], [bx, height, by]]);
 	var mouse = [0, Math.PI * 3 / 4];
 	var fmouse = [0, Math.PI * 3 / 4];
 	var dir = [0, 0, 0];
@@ -93,7 +93,9 @@ module.exports = function (segments) {
 			pos[1] = height;
 			const newPos = vec3.add([], pos, force);
 			// Collide
-			const collisions = colliders.filter(([a, b]) => sdLine(newPos, a, b, tmp1, tmp2) < dist);
+			const collisions = getGridSegments(newPos[0], newPos[2])
+				.map(([[ax, ay], [bx, by]]) => [[ax, height, ay], [bx, height, by]])
+				.filter(([a, b]) => sdLine(newPos, a, b, tmp1, tmp2) < dist);
 			if (collisions.length !== 0) {
 				for (let [a, b] of collisions) {
 					const distance = dist - sdLine(newPos, a, b, tmp1, tmp2);

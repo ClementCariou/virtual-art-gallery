@@ -24,9 +24,9 @@ try {
 
 	map = require('./map')();
 	drawMap = require('./mesh')(regl, map);
-	placement = require('./placement')(regl, map.segments);
+	placement = require('./placement')(regl, map);
 	drawPainting = require('./painting')(regl);
-	fps = require('./fps')(map.segments);
+	fps = require('./fps')(map);
 } catch (e) {
 	document.body.innerText = "This project doesn't work on certain browsers";
 	throw e;
