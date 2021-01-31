@@ -6,7 +6,7 @@ cache:
   - node_modules
 script:
   - npm run build
-before deploy:
+before_deploy:
   - "sed -i '/build.html/d' .gitignore"
 deploy:
   provider: pages
