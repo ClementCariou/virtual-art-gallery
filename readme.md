@@ -1,4 +1,4 @@
-# [Virtual Art Gallery](https://clementcariou.github.io/virtual-art-gallery/build)
+# [Virtual Art Gallery](https://clementcariou.github.io/virtual-art-gallery/build) [![Build Status](https://travis-ci.com/ClementCariou/virtual-art-gallery.svg?branch=master)](https://travis-ci.com/github/ClementCariou/virtual-art-gallery)
 
 [![screenshot](ArtGallery.png "App screenshot")](https://clementcariou.github.io/virtual-art-gallery/build)
 
