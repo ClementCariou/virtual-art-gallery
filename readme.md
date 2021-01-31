@@ -26,30 +26,17 @@ Build :
 npm build
 ```
 
-## API
+## Using it with [local images](https://clementcariou.github.io/virtual-art-gallery/build?api=local)
 
-The [api.js](src/api.js) file can be edited to display your own artworks. It should exports a module with two asynchronious functions :
-```js
-// Called when a new page of images need to be loaded
-fetchList(from, to) // Returns an obj {image_id}
-// Called for each image loading
-fetchImage(obj, advicedResolution) // Returns painting infos {title, image}
-```
-
-### Local images
-
-In [api.js](src/api.js), a working example of local images loading is commented. 
+You can access the local api using this URI params: ```?api=local```. You can change the displayed images and title modifying [images/images.json](images/images.json) and placing your images in the folder [images](images). You need to build the project apply changes on [images/images.json](images/images.json).
 
 ## Evolutions
 
-- better api
-- example folder
 - search, filter and sort
 - painting metadata redirect
 - painting logarithm scale
 - dynamic ambiant sound
 - props for variety
-- webvr
 
 ## Known issues
 

@@ -1,6 +1,8 @@
 'strict mode';
 
-const dataAccess = require('./api');
+const api = require('../api/api');
+const selectedApi = new URLSearchParams(window.location.search).get("api");
+const dataAccess = api[selectedApi] || api[api.default];
 const text = require('./text');
 
 let paintingCache = {};
