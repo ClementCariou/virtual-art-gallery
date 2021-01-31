@@ -54,7 +54,6 @@ In [api.js](src/api.js), a working example of local images loading is commented.
 ## Known issues
 
 - load time (we are using a reverse proxy to get around the cors policy)
-- random camera rotation
 - incorrect painting shadows
 - ceiling lighting seams
 - no specular

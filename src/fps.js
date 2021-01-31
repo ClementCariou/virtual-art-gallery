@@ -5,6 +5,7 @@ const lock = require('pointer-lock');
 //const footstep = require('./footstep')();
 
 const sensibility = 0.002;
+const rotationFilter = 0.95;
 const limitAngle = Math.PI / 4;
 const slowAngle = Math.PI / 6;
 const walkSpeed = 7;
@@ -25,25 +26,26 @@ const sdLine = (p, a, b, tmp1, tmp2) => {
 module.exports = function (segments) {
 	var colliders = segments.map(([[ax, ay], [bx, by]]) => [[ax, height, ay], [bx, height, by]]);
 	var mouse = [0, Math.PI * 3 / 4];
+	var fmouse = [0, Math.PI * 3 / 4];
 	var dir = [0, 0, 0];
 	var pos = [2, height, 2];
 	var forward = [0.707, 0, 0.707], up = [0, 1, 0];
 	var force = [0, 0, 0];
 	var walkTime = 0.5;
 	var view = mat4.identity([]);
-	var rotate = true;
 	var run = false;
 
 	// Mouse input
 	const pointer = lock(document.body);
 	pointer.on('attain', (movements) => {
 		movements.on('data', (move) => {
+			move.dx = Math.max(Math.min(move.dx, 100), -100);
+			move.dy = Math.max(Math.min(move.dy, 100), -100);
 			let smooth = 1;
 			if (Math.abs(mouse[0]) > slowAngle && Math.sign(mouse[0]) == Math.sign(move.dy))
 				smooth = (limitAngle - Math.abs(mouse[0])) / (limitAngle - slowAngle);
 			mouse[0] += smooth * move.dy * sensibility;
 			mouse[1] += move.dx * sensibility;
-			rotate = true;
 		});
 	});
 
@@ -66,15 +68,15 @@ module.exports = function (segments) {
 	// First person scope
 	var lastTime = 0;
 	return {
-		pos, forward, up,
+		pos, fmouse, forward, up,
 		view: () => view,
 		tick: ({ time }) => {
 			// Delta time
 			const dt = time - lastTime;
 			lastTime = time;
 			// Cache matrix
-			if (!rotate && dir[0] === 0 && dir[2] === 0 && walkTime === 0.25) return;
-			rotate = false;
+			//if (!rotate && dir[0] === 0 && dir[2] === 0 && walkTime === 0.25) return;
+			//rotate = false;
 			// Force, Up and Forward direction
 			let tmp1 = [0, 0, 0], tmp2 = []; //reduce gc performance problem
 			vec3.set(forward, 1, 0, 0);
@@ -90,7 +92,7 @@ module.exports = function (segments) {
 			vec3.scale(force, force, speed * dt);
 			pos[1] = height;
 			const newPos = vec3.add([], pos, force);
-			// Collide (optimizable but not the bottleneck)
+			// Collide
 			const collisions = colliders.filter(([a, b]) => sdLine(newPos, a, b, tmp1, tmp2) < dist);
 			if (collisions.length !== 0) {
 				for (let [a, b] of collisions) {
@@ -114,10 +116,13 @@ module.exports = function (segments) {
 			//console.log(d / (run ? runStepLen : walkStepLen) / dt * 60);
 			pos[1] = height + stepHeight * Math.cos(2 * Math.PI * walkTime);
 			vec3.add(pos, pos, force);
+			// Filter mouse mouvement
+			fmouse[0] = rotationFilter * mouse[0] + (1 - rotationFilter) * fmouse[0];
+			fmouse[1] = rotationFilter * mouse[1] + (1 - rotationFilter) * fmouse[1];
 			// Update view
 			mat4.identity(view);
-			mat4.rotateX(view, view, mouse[0]);
-			mat4.rotateY(view, view, mouse[1]);
+			mat4.rotateX(view, view, fmouse[0]);
+			mat4.rotateY(view, view, fmouse[1]);
 			mat4.translate(view, view, vec3.scale(tmp1, pos, -1));
 			// Update footstep
 			/*if (walkTime > 0.5)
