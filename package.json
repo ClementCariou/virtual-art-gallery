@@ -4,7 +4,10 @@
 	"version": "1.0.0",
 	"scripts": {
 		"start": "budo src/index.js",
-		"build": "browserify -p tinyify src/index.js | htmlify > build.html"
+		"build": "browserify -p tinyify src/index.js | htmlify > build.html",
+		"genList": "node images/generateList.js",
+		"prestart": "npm run genList",
+		"prebuild": "npm run genList"
 	},
 	"license": "MIT",
 	"dependencies": {
