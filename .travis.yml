@@ -8,6 +8,7 @@ script:
   - npm run build
 before_deploy:
   - "sed -i '/build.html/d' .gitignore"
+  - "sed -i '/images/images.json/d' .gitignore"
 deploy:
   provider: pages
   skip_cleanup: true
