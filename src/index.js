@@ -18,7 +18,8 @@ try {
 		optionalExtensions: [
 			//'oes_texture_float',
 			'EXT_texture_filter_anisotropic'
-		]
+		],
+		attributes: { alpha : false }
 	});
 
 	map = require('./map')();
@@ -31,6 +32,7 @@ try {
 	throw e;
 }
 
+const fovY = Math.PI / 3;
 const proj = [];
 const context = regl({
 	cull: {
@@ -44,7 +46,7 @@ const context = regl({
 				viewportWidth,
 				viewportHeight
 			}) =>
-			mat4.perspective(proj, Math.PI / 3, viewportWidth / viewportHeight, 0.1, 100)
+			mat4.perspective(proj, fovY, viewportWidth / viewportHeight, 0.1, 100)
 	}
 });
 
@@ -59,12 +61,15 @@ const reflexion = regl({
 });
 
 regl.frame(({
-	time
+	time,
+	viewportWidth,
+	viewportHeight
 }) => {
+	const fovx = 2 * Math.atan(Math.tan(fovY * 0.5) * viewportWidth / viewportHeight);
 	fps.tick({
 		time
 	});
-	placement.update(fps.pos);
+	placement.update(fps.pos, fps.fmouse[1], fovx);
 	regl.clear({
 		color: [0, 0, 0, 1],
 		depth: 1

@@ -11,7 +11,7 @@ let dynamicRes = "high";
 let dynamicResTimer;
 
 // Apply riffle shuffle to sub-arrays
-function merge(dest, org, aStart, aEnd, bStart, bEnd) {
+const merge = (dest, org, aStart, aEnd, bStart, bEnd) => {
     let a = org.slice(aStart, aEnd).reverse();
     let b = org.slice(bStart, bEnd);
     let prop = a.length / b.length;
@@ -20,7 +20,22 @@ function merge(dest, org, aStart, aEnd, bStart, bEnd) {
     while (a.length > 0) dest.push(a.pop());
     while (b.length > 0) dest.push(b.pop());
     return dest;
-}
+};
+
+const culling = (ppos, pangle, fovx, {vseg, angle}) => {
+    const sx1 = vseg[0][0] - ppos[0];
+    const sy1 = vseg[0][1] - ppos[2];
+    const sx2 = vseg[1][0] - ppos[0];
+    const sy2 = vseg[1][1] - ppos[2];
+    const angles = [angle, pangle - fovx + Math.PI/2, pangle + fovx - Math.PI/2];
+    for(let a of angles) {
+        const nx = Math.sin(a);
+        const ny = -Math.cos(a);
+        if(nx * sx1 + ny * sy1 < 0 && nx * sx2 + ny * sy2 < 0)
+            return false;
+    }
+    return true;
+};
 
 module.exports = (regl, segments) => {
     // split segments
@@ -102,44 +117,50 @@ module.exports = (regl, segments) => {
         globalScale = Math.min(globalScale, segLen / p.aspect / 2.2); //clamp horizontal
         globalScale = Math.min(globalScale, 2 / 1.2); //clamp vertical
         const pos = [(seg[0][0] + seg[1][0]) / 2, 2 - globalScale, (seg[0][1] + seg[1][1]) / 2];
-        const angle = - Math.atan2(dir[1], dir[0]);
+        const angle = Math.atan2(dir[1], dir[0]);
         const horiz = Math.abs(angle % 3) < 1 ? 1 : 0;
         const vert = 1 - horiz;
         const scale = [
             2 * globalScale * p.aspect * horiz + 0.1 * vert,
             2 * globalScale,
             2 * globalScale * p.aspect * vert + 0.1 * horiz];
+        const d1 = globalScale * p.aspect / segLen;
+        const d2 = 0.005 / Math.hypot(norm[0], norm[1]);
+        // Visible painting segment for culling
+        const vseg = [
+            [pos[0] - dir[0] * d1, pos[2] - dir[1] * d1],
+            [pos[0] + dir[0] * d1, pos[2] + dir[1] * d1]
+        ];
         // Offset pos to account for painting width and depth
-        const d1 = - globalScale * p.aspect / segLen;
-        const d2 = - 0.005 / Math.hypot(norm[0], norm[1]);
-        pos[0] += dir[0] * d1 + norm[0] * d2;
-        pos[2] += dir[1] * d1 + norm[1] * d2;
+        pos[0] -= dir[0] * d1 + norm[0] * d2;
+        pos[2] -= dir[1] * d1 + norm[1] * d2;
         // Calculate model matrix
         const model = [];
         mat4.fromTranslation(model, pos);
         mat4.scale(model, model, scale);
-        mat4.rotateY(model, model, angle);
+        mat4.rotateY(model, model, -angle);
         const textmodel = [];
         mat4.fromTranslation(textmodel, [pos[0], 1.6 - globalScale, pos[2]]);
-        mat4.rotateY(textmodel, textmodel, angle);
-        batch.push({ ...p, model, textmodel });
+        mat4.rotateY(textmodel, textmodel, -angle);
+        batch.push({ ...p, vseg, angle, model, textmodel });
     };
     // Fetch the first textures
     texture.fetch(regl, 20, dynamicRes, loadPainting, () => fetching = false);
     return {
-        update: (p) => {
+        update: (pos, angle, fovx) => {
             // Estimate player position index
-            let index = areas.findIndex(a => Math.abs(a[0] - p[0]) < 4 && Math.abs(a[1] - p[2]) < 4);
+            let index = areas.findIndex(a => Math.abs(a[0] - pos[0]) < 4 && Math.abs(a[1] - pos[2]) < 4);
             if (index === -1) // Middle of room => search neighbour cells
-                index = areas.findIndex(a => Math.abs(a[0] - p[0]) + Math.abs(a[1] - p[2]) < 8);
+                index = areas.findIndex(a => Math.abs(a[0] - pos[0]) + Math.abs(a[1] - pos[2]) < 8);
             if (index === -1) return; // Out of bound => do nothing
             // Unload far textures
             batch.slice(0, Math.max(0, index - unloadDist)).map(t => texture.unload(t));
             batch.slice(index + unloadDist).map(t => texture.unload(t));
-            // Load and render close textures
+            // Load close textures
             shownBatch = batch.slice(Math.max(0, index - renderDist), index + renderDist);
             shownBatch.map(t => texture.load(regl, t, dynamicRes));
-            shownBatch = shownBatch.filter(t => t.tex);
+            // Frustum / Orientation culling
+            shownBatch = shownBatch.filter(t => t.tex && culling(pos, angle, fovx, t));
             // Fetch new textures
             if (index <= batch.length - loadDist) return;
             if (!fetching) {
