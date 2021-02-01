@@ -1,7 +1,7 @@
 'strict mode';
 
 module.exports = {
-    default: "artic",
+    default: "local",
     artic: require("./artic"),
     local: require("./local")
 };
