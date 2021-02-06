@@ -11,32 +11,31 @@ module.exports = (regl) => {
 	uniform sampler2D tex;
 	varying vec3 uv;
 
-	float hash( float n ) { return fract(sin(n)*43758.5453123); }
-	float noise( in vec3 x ){
-		vec3 p = floor(x);
-		vec3 f = fract(x);
-		f = f*f*(3.0-2.0*f);
-		
-		float n = p.x + p.y*157.0 + 113.0*p.z;
-		return mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
-					mix( hash(n+157.0), hash(n+158.0),f.x),f.y),
-				mix(mix( hash(n+113.0), hash(n+114.0),f.x),
-					mix( hash(n+270.0), hash(n+271.0),f.x),f.y),f.z);
+	// http://madebyevan.com/shaders/fast-rounded-rectangle-shadows/
+	// This approximates the error function, needed for the gaussian integral
+	vec4 erf(vec4 x) {
+		vec4 s = sign(x), a = abs(x);
+		x = 1.0 + (0.278393 + (0.230389 + 0.078108 * (a * a)) * a) * a;
+		x *= x;
+		return s - s / (x * x);
 	}
-	
-	float sdBox( in vec2 p, in vec2 b ) {
-		vec2 d = abs(p)-b;
-		return length(max(d,0.0)) + min(max(d.x,d.y),0.0);
+
+	// Return the mask for the shadow of a box from lower to upper
+	float boxShadow(vec2 lower, vec2 upper, vec2 point, float sigma) {
+		vec4 query = vec4(point - lower, upper - point);
+		vec4 integral = 0.5 + 0.5 * erf(query * (sqrt(0.5) / sigma));
+		return (integral.z - integral.x) * (integral.w - integral.y);
 	}
 
 	void main () {
-		float alpha = 1.0;
-		alpha -= 5.0*pow(max(0.0,0.07+sdBox(uv.xy - vec2(0.5,0.48), vec2(0.55))), 0.7);
-		alpha -= 3.0*pow(max(0.0,sdBox(uv.xy - vec2(0.5,0.5), vec2(0.49))), 0.7);
-		alpha *= 0.9 + 0.1*noise(200.0*uv.xyy) + uv.z;
-		vec3 col = texture2D(tex, uv.xy - sign(uv.x-0.5) * 0.005*vec2(1.0-uv.z,0.0)).rgb;
-		col *= pow(uv.z,0.4);
-		gl_FragColor = vec4(col, alpha);
+		float frontMask = smoothstep(0.9, 1.0, uv.z);
+		float paintingMask = step(0.001, uv.z);
+		float shadowAlpha = boxShadow(vec2(.5), vec2(.7), abs(uv.xy-vec2(.5)), 0.02);
+		float wrapping = 0.005 * sign(uv.x-.5) * (1.-uv.z);
+		float sideShading = pow(uv.z/4.0, 0.1);
+		vec3 col = texture2D(tex, uv.xy - vec2(wrapping, 0.)).rgb;
+		col *= mix(sideShading, 1., frontMask);
+		gl_FragColor = mix(vec4(0.,0.,0.,shadowAlpha), vec4(col,1.), paintingMask);
 	}`,
 			vert: `
 	precision mediump float;
@@ -52,7 +51,6 @@ module.exports = (regl) => {
 	}`,
 
 			attributes: {
-				//pos: [0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0]
 				pos: [
 					0, 0, 1, //Front
 					1, 0, 1,

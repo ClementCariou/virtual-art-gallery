@@ -41,6 +41,5 @@ The local api is accessible using this URI params in the address bar: ```?api=lo
 ## Known issues
 
 - load time (we are using a reverse proxy to get around the cors policy)
-- incorrect painting shadows
 - ceiling lighting seams
 - no specular
