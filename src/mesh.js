@@ -5,24 +5,25 @@ module.exports = (regl, data) => {
         frag: `
         #extension GL_OES_standard_derivatives : enable
         precision mediump float;
-        varying vec3 v_normal;
-        varying vec3 v_pos;
+        varying vec3 v_pos, v_relativepos, v_normal;
 
-        float hash( float n ) { return fract(sin(n)*43758.5453123); }
-        float noise( in vec3 x ){
-            vec3 p = floor(x);
+        // https://www.shadertoy.com/view/4sfGzS
+        float hash(vec3 p) {
+            p  = fract( p*0.3183099+.1 );
+            p *= 17.0;
+            return fract( p.x*p.y*p.z*(p.x+p.y+p.z) );
+        }
+        float noise( in vec3 x ) {
+            vec3 i = floor(x);
             vec3 f = fract(x);
             f = f*f*(3.0-2.0*f);
-            
-            float n = p.x + p.y*157.0 + 113.0*p.z;
-            return mix(mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
-                        mix( hash(n+157.0), hash(n+158.0),f.x),f.y),
-                    mix(mix( hash(n+113.0), hash(n+114.0),f.x),
-                        mix( hash(n+270.0), hash(n+271.0),f.x),f.y),f.z);
+            return mix(mix(mix( hash(i+vec3(0,0,0)), hash(i+vec3(1,0,0)),f.x),
+                        mix( hash(i+vec3(0,1,0)),    hash(i+vec3(1,1,0)),f.x),f.y),
+                    mix(mix( hash(i+vec3(0,0,1)),    hash(i+vec3(1,0,1)),f.x),
+                        mix( hash(i+vec3(0,1,1)),    hash(i+vec3(1,1,1)),f.x),f.y),f.z);
         }
 
         #define fbm2(g) fbm3(vec3(g, 0.0))
-
         float fbm3(vec3 p) {
             float f = 0.0, x;
             for(int i = 1; i <= 9; ++i) {
@@ -32,7 +33,7 @@ module.exports = (regl, data) => {
             return f;
         }
 
-        //https://iquilezles.org/www/articles/filterableprocedurals/filterableprocedurals.htm
+        // https://iquilezles.org/www/articles/filterableprocedurals/filterableprocedurals.htm
         vec3 marble(vec2 p) {
             const float N = 1.005; // grid ratio
             // filter kernel
@@ -61,25 +62,22 @@ module.exports = (regl, data) => {
             return i;
         }
 
-        vec3 hsv2rgb(vec3 c) {
+        vec3 hue2rgb(float h) {
             vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-            vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-            return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+            return mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), 0.08);
         }
 
         void main() {
             vec3 totalLight = vec3(0.1);
-            const float o = 0.0;
-            float pattern = 0.05*noise(2.0*v_pos*vec3(10.0,50.0,10.0))
-                                *noise(2.0*v_pos*vec3(50.0,10.0,50.0))+0.95;
+            float pattern = 0.05*noise(2.0*v_pos*vec3(40.0,10.0,40.0))
+                                *noise(2.0*v_pos*vec3(10.0,40.0,10.0))+0.95;
             for(float x = 0.0; x < 2.0; x++){
                 for(float z = 0.0; z < 2.0; z++){
-                    vec3 fragPos = mod(v_pos+vec3(4.0,0.0,4.0)*min(1.0,1.0+v_normal.y),8.0);
-                    vec3 lightPos = vec3(-o+x*(8.0+2.0*o), 2.0, -o+z*(8.0+2.0*o));
+                    vec3 fragPos = mod(v_pos+vec3(4.0,0.0,4.0),8.0);
+                    vec3 lightPos = vec3(x*8.0, 2.0, z*8.0);
                     vec3 p = floor((v_pos+lightPos-vec3(4.0,0.0,4.0))/8.0);
-                    float hue = mod((p.x + p.z)/10.0,2.0) * max(1.0, 1.0+v_normal.y)*min(1.0,1.0+v_normal.y);//noise(p); //color variation
-                    float power = 0.1*mod(p.x,2.0)*min(1.0,1.0+v_normal.y)+0.9; //border separation contrast
-                    vec3 col = pattern * 1.3*hsv2rgb(vec3(hue,0.07,power));
+                    vec3 col = vec3(pattern * (0.1*mod(p.x,2.0)+0.9)); //border separation contrast
                     vec3 lightDir = lightPos - fragPos; 
                     float d = length(lightDir);
                     float att = mix(0.2*d*d, 5.0 + 3.0*d, abs(v_normal.y));
@@ -87,25 +85,30 @@ module.exports = (regl, data) => {
                     totalLight += diff * col / att;
                 }
             }
-            //totalLight *= 0.005*noise(v_pos*vec3(50.0,50.0,50.0))+0.995;
-            if(v_normal.y > 0.0){
-                totalLight *= 0.5*marble(v_pos.xz + vec2(0.5)) + 1.0;
-            }else if(v_normal.y == 0.0){
-                totalLight *= 0.5*border(v_pos.y) + 0.5;
+            totalLight = mix(totalLight, vec3(0.19 * pattern), step(0.5,-v_normal.y));
+            totalLight *= hue2rgb(0.5 + (v_pos.x + v_pos.z) / 160.0); //color variation
+            if(v_normal.y > 0.0) {
+                totalLight *= mix(vec3(1.3), vec3(1.9), marble(v_pos.xz + vec2(0.5)));
+            } else if(v_normal.y == 0.0) {
+                totalLight *= mix(0.6, 1.0, border(v_pos.y));
             }
+            float dist = length(v_relativepos);
+            totalLight *= smoothstep(130.,0.,dist); // fog
+            float alpha = .98+smoothstep(150.,0.,dist)-v_normal.y; // reflexion
             totalLight = pow(totalLight, vec3(1.0/2.2));
-            gl_FragColor = vec4(totalLight, 1.975-v_normal.y);
+            gl_FragColor = vec4(totalLight, alpha);
         }`,
 
         vert: `
         precision mediump float;
         uniform mat4 proj, view;
         attribute vec3 position, normal;
-        varying vec3 v_pos, v_normal;
+        varying vec3 v_pos, v_relativepos, v_normal;
         uniform float yScale;
         void main() {
             vec3 pos = position;
             v_pos = pos;
+            v_relativepos = (view * vec4(pos, 1)).xyz;
             pos.y *= yScale;
             v_normal = normal;
             gl_Position = proj * view * vec4(pos, 1);
