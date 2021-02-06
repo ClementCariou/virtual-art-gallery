@@ -1,6 +1,6 @@
 'strict mode';
 
-const textHeight = 64;
+const textHeight = 32;
 const textCanvas = document.createElement('canvas');
 //document.body.appendChild(textCanvas);
 //textCanvas.style.position = "fixed";
@@ -8,13 +8,12 @@ const maxWidth = textCanvas.width = textCanvas.height = 1024;
 const ctx = textCanvas.getContext('2d');
 ctx.mozImageSmoothingEnabled = false;
 ctx.webkitImageSmoothingEnabled = false;
-ctx.font = textHeight + "px monospace";
+ctx.font = textHeight + "px Verdana";
 ctx.textBaseline = "bottom";
 ctx.fillStyle = "#aaa";
 
 // from https://delphic.me.uk/tutorials/webgl-text
 function createMultilineText(ctx, textToWrite, maxWidth, text) {
-    textToWrite = textToWrite.replace("\n", " ");
     var currentText = textToWrite;
     var futureText;
     var subWidth = 0;
@@ -28,17 +27,14 @@ function createMultilineText(ctx, textToWrite, maxWidth, text) {
     // futureText var keeps track of text not yet written to a text line
     while (ctx.measureText(currentText).width > maxWidth && wordsInCurrent > 1) {
         wordsInCurrent--;
-        var linebreak = false;
-
         currentText = futureText = "";
         for (var i = 0; i < wordArrayLength; i++) {
             if (i < wordsInCurrent) {
                 currentText += wordArray[i];
-                if (i + 1 < wordsInCurrent) { currentText += " "; }
-            }
-            else {
+                if (i + 1 < wordsInCurrent) currentText += " ";
+            } else {
                 futureText += wordArray[i];
-                if (i + 1 < wordArrayLength) { futureText += " "; }
+                if (i + 1 < wordArrayLength) futureText += " ";
             }
         }
     }
@@ -58,9 +54,9 @@ function createMultilineText(ctx, textToWrite, maxWidth, text) {
 }
 
 module.exports = {
-    init(texture, textToWrite) {
+    init(texture, textToWrite, paintingWidth=maxWidth) {
         var text = [];
-        createMultilineText(ctx, textToWrite, maxWidth, text);
+        createMultilineText(ctx, textToWrite, Math.min(paintingWidth*maxWidth, maxWidth), text);
 
         ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
         for (var i = 0; i < text.length; i++) {

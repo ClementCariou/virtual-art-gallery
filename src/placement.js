@@ -38,7 +38,7 @@ module.exports = (regl, {placements, getAreaIndex}) => {
         let globalScale = 4.5 / (3 + p.aspect); //tweaked to look good
         globalScale = Math.min(globalScale, segLen / p.aspect / 2.2); //clamp horizontal
         globalScale = Math.min(globalScale, 2 / 1.2); //clamp vertical
-        const pos = [(seg[0][0] + seg[1][0]) / 2, 2 - globalScale, (seg[0][1] + seg[1][1]) / 2];
+        const pos = [(seg[0][0] + seg[1][0]) / 2, 2.1 - globalScale, (seg[0][1] + seg[1][1]) / 2];
         const angle = Math.atan2(dir[1], dir[0]);
         const horiz = Math.abs(angle % 3) < 1 ? 1 : 0;
         const vert = 1 - horiz;
@@ -46,6 +46,7 @@ module.exports = (regl, {placements, getAreaIndex}) => {
             2 * globalScale * p.aspect * horiz + 0.1 * vert,
             2 * globalScale,
             2 * globalScale * p.aspect * vert + 0.1 * horiz];
+        const text = p.textGen(globalScale * p.aspect);
         const d1 = globalScale * p.aspect / segLen;
         const d2 = 0.005 / Math.hypot(norm[0], norm[1]);
         // Visible painting segment for culling
@@ -62,9 +63,10 @@ module.exports = (regl, {placements, getAreaIndex}) => {
         mat4.scale(model, model, scale);
         mat4.rotateY(model, model, -angle);
         const textmodel = [];
-        mat4.fromTranslation(textmodel, [pos[0], 1.6 - globalScale, pos[2]]);
+        mat4.fromTranslation(textmodel, [pos[0], 1.7 - globalScale, pos[2]]);
+        mat4.scale(textmodel, textmodel, [2,2,2]);
         mat4.rotateY(textmodel, textmodel, -angle);
-        batch.push({ ...p, vseg, angle, model, textmodel });
+        batch.push({ ...p, vseg, angle, model, textmodel, text, textGen:null });
     };
     // Fetch the first textures
     texture.fetch(regl, 20, dynamicRes, loadPainting, () => fetching = false);

@@ -27,7 +27,7 @@ let aniso = false;
 
 const emptyImage = (regl) => [
 	(unusedTextures.pop() || regl.texture)([[[200, 200, 200]]]),
-	text.init((unusedTextures.pop() || regl.texture), ""),
+	_=>(unusedTextures.pop() || regl.texture)([[[0, 0, 0, 0]]]),
 	1
 ];
 
@@ -42,10 +42,10 @@ async function loadImage(regl, p, res) {
 	let image, title;
 	try {
 		const data = await dataAccess.fetchImage(p, resolution(res));
+		title = data.title;
 		// Resize image to a power of 2 to use mipmap (faster than createImageBitmap resizing)
 		image = await createImageBitmap(data.image);
 		ctx.drawImage(image, 0, 0, resizeCanvas.width, resizeCanvas.height);
-		title = text.init((unusedTextures.pop() || regl.texture), data.title);
 	} catch(e) {
 		// Try again with a lower resolution, otherwise return an empty image
 		console.error(e);
@@ -59,7 +59,7 @@ async function loadImage(regl, p, res) {
 			aniso,
 			flipY: true
 		}),
-		title,
+		width=>text.init((unusedTextures.pop() || regl.texture), title, width),
 		image.width / image.height
 	];
 }
@@ -76,8 +76,8 @@ module.exports = {
 					return;
 				}
 				paintingCache[p.image_id] = p;
-				loadImage(regl, p, res).then(([tex, text, aspect]) => {
-					cbOne({ ...p, tex, text, aspect });
+				loadImage(regl, p, res).then(([tex, textGen, aspect]) => {
+					cbOne({ ...p, tex, textGen, aspect });
 					if (--count === 0)
 						cbAll();
 				});
