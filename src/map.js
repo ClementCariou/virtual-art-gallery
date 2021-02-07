@@ -85,13 +85,19 @@ function splitSegments(segments) {
 	console.time('split segments');
     segments = segments.map(s => {
         // Calculate subsegment length
-        let l = Math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]);
-        l = Math.ceil(l / 8 - 0.3);
-        if (l <= 0) return {parts: [s], seg:s};
+        const l = Math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]);
+        const n = Math.ceil(l / 8 - 0.3);
+        if (n <= 0) return {parts: [s], seg:s};
+		// Add margin
+		const t1 = 1/(n*2+1)/2;
+		const Ax = s[0][0] * (1 - t1) + s[1][0] * t1;
+		const Ay = s[0][1] * (1 - t1) + s[1][1] * t1;
+		const Bx = s[1][0] * (1 - t1) + s[0][0] * t1;
+		const By = s[1][1] * (1 - t1) + s[0][1] * t1;
         // Lerp coordinates
         let res = [];
-        for (let t = 0; t <= 1; t += 1 / l)
-            res.push([s[0][0] * (1 - t) + s[1][0] * t, s[0][1] * (1 - t) + s[1][1] * t]);
+        for (let t = 0; t <= 1; t += 1 / n)
+            res.push([Ax * (1 - t) + Bx * t, Ay * (1 - t) + By * t]);
         // Form pairs of coordinates
         return {
 			seg: s,
