@@ -32,13 +32,19 @@ The local api is accessible using this URI params in the address bar: ```?api=lo
 
 ## Evolutions
 
+- touch screen device suport
+- NPM package
+- typescript interface
+- more apis/examples
+- user action events
+- seeded generation
+- colors themes
 - search, filter and sort
-- painting metadata redirect
-- painting logarithm scale
-- dynamic ambiant sound
+- manually defined map
 - props for variety
+- dynamic ambiant sound
 
 ## Known issues
 
 - load time (we are using a reverse proxy to get around the cors policy)
-- no specular
+- fragment bloc glitch on painting
