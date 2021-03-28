@@ -29,22 +29,3 @@ npm build
 ## Using it with [local images](https://clementcariou.github.io/virtual-art-gallery/build?api=local)
 
 The local api is accessible using this URI params in the address bar: ```?api=local``` (it's possible to load automatically this API by changing the default API in the [api.js](api/api.js) file). You can change the displayed images in the folder [images](images), you will need to rebuild the project (or relauch the dev server) to apply the modifications.
-
-## Evolutions
-
-- touch screen device support
-- NPM package
-- typescript interface
-- more apis/examples
-- user action events
-- seeded generation
-- colors themes
-- search, filter and sort
-- manually defined map
-- props for variety
-- dynamic ambiant sound
-
-## Known issues
-
-- load time (we are using a reverse proxy to get around the cors policy)
-- fragment bloc glitch on painting
