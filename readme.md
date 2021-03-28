@@ -32,7 +32,7 @@ The local api is accessible using this URI params in the address bar: ```?api=lo
 
 ## Evolutions
 
-- touch screen device suport
+- touch screen device support
 - NPM package
 - typescript interface
 - more apis/examples
