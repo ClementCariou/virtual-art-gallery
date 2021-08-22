@@ -82,7 +82,7 @@ module.exports = {
                 gl_FragColor = vec4(0,0,0, c);
             }`,
             vert: `
-            precision mediump float;
+            precision highp float;
             uniform mat4 proj, view, model;
             uniform float yScale;
             attribute vec2 pos;

@@ -7,7 +7,7 @@ module.exports = (regl) => {
 	const painting =
 		regl({
 			frag: `
-	precision mediump float;
+	precision lowp float;
 	uniform sampler2D tex;
 	varying vec3 uv;
 
@@ -38,7 +38,7 @@ module.exports = (regl) => {
 		gl_FragColor = mix(vec4(0.,0.,0.,shadowAlpha), vec4(col,1.), paintingMask);
 	}`,
 			vert: `
-	precision mediump float;
+	precision highp float;
 	uniform mat4 proj, view, model;
 	uniform float yScale;
 	attribute vec3 pos;
@@ -73,7 +73,10 @@ module.exports = (regl) => {
 				1, 0, 5, 4, 5, 0, //Contour
 				3, 1, 7, 5, 7, 1,
 				0, 2, 4, 6, 4, 2,
-				8, 9, 10, 11, 10, 9, //Shadow
+				8,  9,  4, 5, 4, 9, //Shadow
+				9,  11, 5, 7, 5, 11,
+				11, 10, 7, 6, 7, 10,
+				10, 8,  6, 4, 6, 8,
 			],
 
 			uniforms: {
