@@ -167,20 +167,25 @@ function genGrid(segments, n) {
 	console.time('gen grid');
 	let splittedSegments = splitSegments(segments);
 	const cellCount = Math.pow(2, n-1);
-	let grid = Array(cellCount * cellCount).fill().map(()=>[]);
+	let grid = Array(cellCount * cellCount).fill().map(() => []);
 	splittedSegments.map(({seg, parts}) =>
 		parts.map(part => {
-			let index = 
+			const indexes = [
+				Math.round(part[0][0] / 8 - 0.5) +
+				Math.round(part[0][1] / 8 - 0.5) * cellCount,
+				Math.round(part[1][0] / 8 - 0.5) +
+				Math.round(part[1][1] / 8 - 0.5) * cellCount,
 				Math.round((part[0][0] + part[1][0]) / 16 - 0.5) +
-				Math.round((part[0][1] + part[1][1]) / 16 - 0.5) * cellCount;
-			for(let i of [index, index+1, index+cellCount, index+cellCount+1]) {
+				Math.round((part[0][1] + part[1][1]) / 16 - 0.5) * cellCount
+			];
+			for(let i of indexes) {
 				if(!grid[i]) grid[i] = [];
 				if(!grid[i].includes(seg)) grid[i].push(seg);
 			}
 		})
 	);
 	const getGridSegments = (x, y) =>
-		grid[Math.round(x/8 + 0.5) + Math.round(y/8 + 0.5) * cellCount];
+		grid[Math.round(x/8 - 0.5) + Math.round(y/8 - 0.5) * cellCount] || [];
 	let placements = splittedSegments.flatMap(({parts}) => parts);
 	// Ignore short segments for painting placement
 	placements = placements.filter(([[ax, ay], [bx, by]]) => Math.hypot(ax - bx, ay - by) > 1);
@@ -189,7 +194,7 @@ function genGrid(segments, n) {
         Math.round((place[0][0] + place[1][0]) / 16 + 0.5) * 8 - 4,
         Math.round((place[0][1] + place[1][1]) / 16 + 0.5) * 8 - 4
 	]);
-	const getAreaIndex = (x, y) =>{
+	const getAreaIndex = (x, y) => {
 		let index = areas.findIndex(a => Math.abs(a[0] - x) < 4 && Math.abs(a[1] - y) < 4)
 		if (index === -1) // Middle of room => search neighbour cells
 			index = areas.findIndex(a => Math.abs(a[0] - x) + Math.abs(a[1] - y) < 8)

@@ -1,20 +1,17 @@
 'use strict';
 
 var useReflexion = true;
-var debug = false;
+var showStats = false;
+const fovY = Math.PI / 3;
 
 if (navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)) {
-	/*document.body.innerText = "This project doesn't work properly on mobile devices";
-	throw new Error("mobile device");*/
 	useReflexion = false;
 }
-
-const mat4 = require('gl-mat4');
 
 const Stats = require('stats.js');
 var stats = new Stats();
 stats.showPanel(0);
-if(debug){
+if(showStats) {
 	document.body.appendChild( stats.dom );
 }
 
@@ -38,10 +35,8 @@ const mesh = require('./mesh');
 drawMap = mesh(regl, map, useReflexion);
 placement = require('./placement')(regl, map);
 drawPainting = require('./painting')(regl);
-fps = require('./fps')(map);
+fps = require('./fps')(map, fovY);
 
-const fovY = Math.PI / 3;
-const proj = [];
 const context = regl({
 	cull: {
 		enable: true,
@@ -49,12 +44,8 @@ const context = regl({
 	},
 	uniforms: {
 		view: fps.view,
-		yScale: 1.0,
-		proj: ({
-				viewportWidth,
-				viewportHeight
-			}) =>
-			mat4.perspective(proj, fovY, viewportWidth / viewportHeight, 0.1, 100)
+		proj: fps.proj,
+		yScale: 1.0
 	}
 });
 
@@ -69,12 +60,10 @@ const reflexion = regl({
 });
 
 regl.frame(({
-	time,
-	viewportWidth,
-	viewportHeight
+	time
 }) => {
 	stats.begin();
-	const fovx = 2 * Math.atan(Math.tan(fovY * 0.5) * viewportWidth / viewportHeight);
+	const fovx = 2 * Math.atan(Math.tan(fovY * 0.5) * window.innerWidth / window.innerHeight);
 	fps.tick({
 		time
 	});
