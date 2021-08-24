@@ -19,6 +19,8 @@ const height = 2;
 const stepHeight = 0.03;
 const distToWalls = 0.5;
 const viewingDist = 3;
+const yLimitTouch = 5;
+const touchDistLimit = 40;
 
 const sdLine = (p, a, b, tmp1, tmp2) => {
 	const pa = vec3.sub(tmp1, p, a);
@@ -39,19 +41,15 @@ const wallProject = (org, dir, a, b) => {
 	const vx = a[0]-b[0], vz = a[1]-b[1];
 	const nx = -vz, nz = vx;
 	const wAB = a[0] * nx + a[1] * nz;
-	// Normalize the plane
-	const mag = Math.hypot(nx, nz, wAB);
-	const planeAB = [nx/mag, 0, nz/mag, wAB/mag];
 	// Project to the plane
-	let {dist, intersection: i} = planeProject(org, dir, planeAB);
+	let {dist, intersection: i} = planeProject(org, dir, [nx, 0, nz, wAB]);
 	// Verify it's between A and B
 	const wA = a[0] * vx + a[1] * vz;
 	const wB = b[0] * vx + b[1] * vz;
 	const wI = i[0] * vx + i[2] * vz;
-	if((wI > wA) + (wI > wB) !== 1) {
+	if((wI > wA) + (wI > wB) !== 1)
 		dist = Infinity;
-	}
-	console.log(dist, i);
+	//console.log(dist, i);
 	return {a, b, dist, intersection: i};
 };
 
@@ -110,31 +108,31 @@ module.exports = function ({getGridSegments}, fovY) {
 				vec3.transformMat4(touchDir, touchDir, mat4.invert(tmp, view));
 				vec3.sub(touchDir, touchDir, pos);
 				vec3.normalize(touchDir, touchDir);
+				// project to the floor and the ceilling
 				let {intersection: floorPos, dist: floorDist} = planeProject(pos, touchDir, [0,1,0,0]);
-				let {dist: roofDist} = planeProject(pos, touchDir, [0,1,0,5]);
-				console.log(floorDist, roofDist);
+				let {dist: ceilingDist} = planeProject(pos, touchDir, [0,1,0,yLimitTouch]);
+				console.log(floorDist, ceilingDist);
 				// get the walls suceptibles to intersect with the raycast
 				let [x,,z] = pos;
 				let [dx,,dz] = touchDir;
 				dx /= Math.hypot(dx, dz);
 				dz /= Math.hypot(dx, dz);
 				let walls = getGridSegments(x, z);
-				for(let i = 0; i < 5; i++) {
+				for(let i = 0; i < touchDistLimit / 8; i++) {
 					x += dx * 8; z += dz * 8;
-					// select cells every 8 meters shifted left and right to miss none
+					// select cells every 8m shifted 4m left and right to miss none
 					walls = [...walls, ...getGridSegments(x - dz*4, z + dx*4)];
 					walls = [...walls, ...getGridSegments(x + dz*4, z - dx*4)];
 				}
 				// project to walls
 				let intersections = [... new Set(walls)]
 					.map(([a, b]) => wallProject(pos, touchDir, a, b))
-					.filter(({dist}) => dist > 0 && dist < Math.max(floorDist, roofDist));
+					.filter(({dist}) => dist > 0 && dist < Math.max(floorDist, ceilingDist) && dist < touchDistLimit);
 				intersections.sort((a, b) => a.dist < b.dist);
 				//console.log(intersections);
 				if (intersections.length !== 0) { 
 					// teleport to wall
-					console.log("teleport to wall");
-					const {intersection: [xpos, _, zpos]} = intersections[0];
+					const {intersection: [xpos,, zpos]} = intersections[0];
 					vec3.set(pos, xpos, pos[1], zpos);
 				} else if(floorDist > 0) {
 					// teleport to floor
@@ -148,19 +146,19 @@ module.exports = function ({getGridSegments}, fovY) {
 					.map(([a, b]) => ({a, b, dist: sdLine(pos, a, b, tmp1, tmp2)}))
 					.filter(({dist}) => dist < viewingDist);
 				collisions.sort((a, b) => a.dist < b.dist);
-				console.log(collisions);
+				//console.log(collisions);
 				if (collisions.length !== 0) {
 					for (let {a, b} of collisions) {
 						const distance = viewingDist - sdLine(pos, a, b, tmp1, tmp2);
 						if(distance < 0) continue;
+						// Segment normal
 						const delta = vec3.sub(tmp1, b, a).reverse();
 						delta[0] = -delta[0];
 						vec3.normalize(delta, delta);
-						if(vec3.dist(vec3.add(tmp2, pos, vec3.scale(tmp2, delta, 0.001)), a) < vec3.dist(pos, a))
-							continue;
 						vec3.scale(delta, delta, distance);
+						// Offset by viewingDist from the wall
 						vec3.add(pos, pos, delta);
-						console.log(distance, delta);
+						//console.log(distance, delta);
 					}
 				}
 			}
