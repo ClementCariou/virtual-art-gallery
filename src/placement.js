@@ -15,7 +15,7 @@ const culling = (ppos, pangle, fovx, {vseg, angle}) => {
     const sy1 = vseg[0][1] - ppos[2];
     const sx2 = vseg[1][0] - ppos[0];
     const sy2 = vseg[1][1] - ppos[2];
-    const angles = [angle, pangle - fovx + Math.PI/2, pangle + fovx - Math.PI/2];
+    const angles = [angle, pangle - fovx/2 + Math.PI/2, pangle + fovx/2 - Math.PI/2];
     for(let a of angles) {
         const nx = Math.sin(a);
         const ny = -Math.cos(a);
@@ -51,8 +51,8 @@ module.exports = (regl, {placements, getAreaIndex}) => {
         const d2 = 0.005 / Math.hypot(norm[0], norm[1]);
         // Visible painting segment for culling
         const vseg = [
-            [pos[0] - dir[0] * d1, pos[2] - dir[1] * d1],
-            [pos[0] + dir[0] * d1, pos[2] + dir[1] * d1]
+            [pos[0] - dir[0] * d1 * 2, pos[2] - dir[1] * d1],
+            [pos[0] + dir[0] * d1 * 2, pos[2] + dir[1] * d1]
         ];
         // Offset pos to account for painting width and depth
         pos[0] -= dir[0] * d1 + norm[0] * d2;
@@ -71,7 +71,7 @@ module.exports = (regl, {placements, getAreaIndex}) => {
     // Fetch the first textures
     texture.fetch(regl, 20, dynamicRes, loadPainting, () => fetching = false);
     return {
-        update: (pos, angle, fovx) => {
+        update: (pos, angle, fovX) => {
             // Estimate player position index
             let index = getAreaIndex(pos[0], pos[2], 4);
             if (index === -1) return; // Out of bound => do nothing
@@ -82,7 +82,7 @@ module.exports = (regl, {placements, getAreaIndex}) => {
             shownBatch = batch.slice(Math.max(0, index - renderDist), index + renderDist);
             shownBatch.map(t => texture.load(regl, t, dynamicRes));
             // Frustum / Orientation culling
-            shownBatch = shownBatch.filter(t => t.tex && culling(pos, angle, fovx, t));
+            shownBatch = shownBatch.filter(t => t.tex && culling(pos, angle, fovX, t));
             // Fetch new textures
             if (index <= batch.length - loadDist) return;
             if (!fetching) {

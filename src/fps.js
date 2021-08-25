@@ -5,7 +5,7 @@ const lock = require('pointer-lock');
 //const footstep = require('./footstep')();
 
 const mouseSensibility = 0.002;
-const touchSensibility = 0.006;
+const touchSensibility = 0.008;
 const rotationFilter = 0.95;
 const limitAngle = Math.PI / 4;
 const slowAngle = Math.PI / 6;
@@ -91,6 +91,8 @@ module.exports = function ({getGridSegments}, fovY) {
 		if(pointer) {
 			pointer.destroy();
 			pointer = false;
+			document.querySelector("canvas").requestFullscreen();
+			return;
 		}
 		if(e.type === "touchstart"){
 			firstTouch = lastTouch = e.touches[0];
@@ -197,7 +199,7 @@ module.exports = function ({getGridSegments}, fovY) {
 		pos, fmouse, forward, up,
 		view: () => view,
 		proj: () => {
-			mat4.perspective(proj, fovY, window.innerWidth / window.innerHeight, 0.1, 100);
+			mat4.perspective(proj, fovY(), window.innerWidth / window.innerHeight, 0.1, 100);
 			return proj;
 		},
 		tick: ({ time }) => {

@@ -2,11 +2,17 @@
 
 var useReflexion = true;
 var showStats = false;
-const fovY = Math.PI / 3;
+
+// Handle different screen ratios
+const mapVal = (value, min1, max1, min2, max2) => min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+var fovX = () => mapVal(window.innerWidth / window.innerHeight, 16/9, 9/16, 1.7, Math.PI / 3);
 
 if (navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)) {
 	useReflexion = false;
+	// Account for the searchbar
+	fovX = () => mapVal(window.innerWidth / window.innerHeight, 16/9, 9/16, 1.5, Math.PI / 3);
 }
+var fovY = () => 2 * Math.atan(Math.tan(fovX() * 0.5) * window.innerHeight / window.innerWidth);
 
 const Stats = require('stats.js');
 var stats = new Stats();
@@ -63,11 +69,10 @@ regl.frame(({
 	time
 }) => {
 	stats.begin();
-	const fovx = 2 * Math.atan(Math.tan(fovY * 0.5) * window.innerWidth / window.innerHeight);
 	fps.tick({
 		time
 	});
-	placement.update(fps.pos, fps.fmouse[1], fovx);
+	placement.update(fps.pos, fps.fmouse[1], fovX());
 	regl.clear({
 		color: [0, 0, 0, 1],
 		depth: 1
