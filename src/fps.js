@@ -9,8 +9,8 @@ const touchSensibility = 0.008;
 const rotationFilter = 0.95;
 const limitAngle = Math.PI / 4;
 const slowAngle = Math.PI / 6;
-const durationToClick = 500;
-const distToClick = 100;
+const durationToClick = 300;
+const distToClick = 20;
 const walkSpeed = 7;
 const runSpeed = 12;
 const walkStepLen = 3.6;
@@ -21,6 +21,7 @@ const distToWalls = 0.5;
 const viewingDist = 3;
 const yLimitTouch = 5;
 const touchDistLimit = 40;
+const tpDuration = 1;
 
 const sdLine = (p, a, b, tmp1, tmp2) => {
 	const pa = vec3.sub(tmp1, p, a);
@@ -53,6 +54,11 @@ const wallProject = (org, dir, a, b) => {
 	return {a, b, dist, intersection: i};
 };
 
+const lerp = (x, a, b) => (1 - x) * a + x * b;
+
+const easeInOutQuad = x =>
+	x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+
 module.exports = function ({getGridSegments}, fovY) {
 	var mouse = [0, Math.PI * 3 / 4];
 	var fmouse = [0, Math.PI * 3 / 4];
@@ -64,6 +70,9 @@ module.exports = function ({getGridSegments}, fovY) {
 	var view = mat4.identity([]);
 	var proj = mat4.identity([]);
 	var run = false;
+	var startPos = [0,0,0];
+	var endPos = [0,0,0];
+	var tpProgress = 1;
 
 	const orientCamera = (dx, dy, sensibility)=> {
 		dx = Math.max(Math.min(dx, 100), -100);
@@ -91,7 +100,7 @@ module.exports = function ({getGridSegments}, fovY) {
 		if(pointer) {
 			pointer.destroy();
 			pointer = false;
-			document.querySelector("canvas").requestFullscreen();
+			//document.querySelector("canvas").requestFullscreen();
 			return;
 		}
 		if(e.type === "touchstart"){
@@ -135,23 +144,25 @@ module.exports = function ({getGridSegments}, fovY) {
 				if (intersections.length !== 0) { 
 					// teleport to wall
 					const {intersection: [xpos,, zpos]} = intersections[0];
-					vec3.set(pos, xpos, pos[1], zpos);
+					vec3.copy(startPos, pos);
+					vec3.set(endPos, xpos, pos[1], zpos);
 				} else if(floorDist > 0) {
 					// teleport to floor
-					vec3.set(pos, floorPos[0], pos[1], floorPos[2]);
+					vec3.copy(startPos, pos);
+					vec3.set(endPos, floorPos[0], pos[1], floorPos[2]);
 				} else {
 					return;
 				}
 				// snap position to allowed area
-				let collisions = getGridSegments(pos[0], pos[2])
+				let collisions = getGridSegments(endPos[0], endPos[2])
 					.map(([[ax, ay], [bx, by]]) => [[ax, height, ay], [bx, height, by]])
-					.map(([a, b]) => ({a, b, dist: sdLine(pos, a, b, tmp1, tmp2)}))
+					.map(([a, b]) => ({a, b, dist: sdLine(endPos, a, b, tmp1, tmp2)}))
 					.filter(({dist}) => dist < viewingDist);
 				collisions.sort((a, b) => a.dist < b.dist);
 				//console.log(collisions);
 				if (collisions.length !== 0) {
 					for (let {a, b} of collisions) {
-						const distance = viewingDist - sdLine(pos, a, b, tmp1, tmp2);
+						const distance = viewingDist - sdLine(endPos, a, b, tmp1, tmp2);
 						if(distance < 0) continue;
 						// Segment normal
 						const delta = vec3.sub(tmp1, b, a).reverse();
@@ -159,10 +170,11 @@ module.exports = function ({getGridSegments}, fovY) {
 						vec3.normalize(delta, delta);
 						vec3.scale(delta, delta, distance);
 						// Offset by viewingDist from the wall
-						vec3.add(pos, pos, delta);
+						vec3.add(endPos, endPos, delta);
 						//console.log(distance, delta);
 					}
 				}
+				tpProgress = 0;
 			}
 			firstTouch = lastTouch = false;
 		} else if(e.type === "touchmove") {
@@ -250,6 +262,14 @@ module.exports = function ({getGridSegments}, fovY) {
 			//console.log(d / (run ? runStepLen : walkStepLen) / dt * 60);
 			pos[1] = height + stepHeight * Math.cos(2 * Math.PI * walkTime);
 			vec3.add(pos, pos, force);
+			// Teleportation transition
+			if(tpProgress < 1) {
+				tpProgress += dt / tpDuration;
+				tpProgress = Math.min(tpProgress, 1);
+				const t = easeInOutQuad(tpProgress);
+				//console.log(t, tpProgress, pos);
+				vec3.set(pos, lerp(t, startPos[0], endPos[0]), pos[1],  lerp(t, startPos[2], endPos[2]));
+			}
 			// Filter mouse mouvement
 			fmouse[0] = rotationFilter * mouse[0] + (1 - rotationFilter) * fmouse[0];
 			fmouse[1] = rotationFilter * mouse[1] + (1 - rotationFilter) * fmouse[1];
