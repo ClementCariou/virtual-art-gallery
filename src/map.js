@@ -167,7 +167,8 @@ function genGrid(segments, n) {
 	console.time('gen grid');
 	let splittedSegments = splitSegments(segments);
 	const cellCount = Math.pow(2, n-1);
-	let grid = Array(cellCount * cellCount).fill().map(() => []);
+	let gridSegs = Array(cellCount * cellCount).fill().map(() => []);
+	let gridParts = Array(cellCount * cellCount).fill().map(() => []);
 	splittedSegments.map(({seg, parts}) =>
 		parts.map(part => {
 			const indexes = [
@@ -179,13 +180,18 @@ function genGrid(segments, n) {
 				Math.round((part[0][1] + part[1][1]) / 16 - 0.5) * cellCount
 			];
 			for(let i of indexes) {
-				if(!grid[i]) grid[i] = [];
-				if(!grid[i].includes(seg)) grid[i].push(seg);
+				if(!gridSegs[i]) gridSegs[i] = [];
+				if(!gridSegs[i].includes(seg)) gridSegs[i].push(seg);
+				if(!gridParts[i]) gridParts[i] = [];
+				if(!gridParts[i].includes(part)) gridParts[i].push(part);
 			}
 		})
 	);
+	//console.log(gridSegs, gridParts);
 	const getGridSegments = (x, y) =>
-		grid[Math.round(x/8 - 0.5) + Math.round(y/8 - 0.5) * cellCount] || [];
+		gridSegs[Math.round(x/8 - 0.5) + Math.round(y/8 - 0.5) * cellCount] || [];
+	const getGridParts = (x, y) =>
+		gridParts[Math.round(x/8 - 0.5) + Math.round(y/8 - 0.5) * cellCount] || [];
 	let placements = splittedSegments.flatMap(({parts}) => parts);
 	// Ignore short segments for painting placement
 	placements = placements.filter(([[ax, ay], [bx, by]]) => Math.hypot(ax - bx, ay - by) > 1);
@@ -201,7 +207,7 @@ function genGrid(segments, n) {
 		return index;
 	};
 	console.timeEnd('gen grid');
-	return {getGridSegments, getAreaIndex, placements};
+	return {getGridSegments, getGridParts, getAreaIndex, placements};
 }
 
 module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
@@ -213,7 +219,7 @@ module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
 		.map(([[x1, y1], [x2, y2]]) => [Math.sign(y1 - y2), 0, Math.sign(x2 - x1)])
 		.flatMap((v) => Array(4).fill(v));
 	let position = segments.flat().flatMap(([x, y]) => [[x, 0, y], [x, h, y]]);
-	let {getAreaIndex, getGridSegments, placements} = genGrid(segments, n);
+	let {getAreaIndex, getGridSegments, getGridParts, placements} = genGrid(segments, n);
 	//Add floor and ceilling
 	normal.push([0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]);
 	position.push([0, h, 0], [0, h, s], [s, h, 0], [s, h, s], [0, 0.01, 0], [s, 0.01, 0], [0, 0.01, s], [s, 0.01, s]);
@@ -226,6 +232,7 @@ module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
 		placements,
 		getAreaIndex,
 		getGridSegments,
+		getGridParts,
 		position,
 		normal,
 		elements

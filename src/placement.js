@@ -5,6 +5,7 @@ const mat4 = require('gl-mat4');
 const renderDist = 20;
 const loadDist = 20;
 const unloadDist = 40;
+const fovxMargin = Math.PI/32;
 
 const dynamicResPeriod = 3000;
 let dynamicRes = "high";
@@ -15,7 +16,7 @@ const culling = (ppos, pangle, fovx, {vseg, angle}) => {
     const sy1 = vseg[0][1] - ppos[2];
     const sx2 = vseg[1][0] - ppos[0];
     const sy2 = vseg[1][1] - ppos[2];
-    const angles = [angle, pangle - fovx/2 + Math.PI/2, pangle + fovx/2 - Math.PI/2];
+    const angles = [angle, pangle - fovx/2 - fovxMargin + Math.PI/2, pangle + fovx/2 + fovxMargin - Math.PI/2];
     for(let a of angles) {
         const nx = Math.sin(a);
         const ny = -Math.cos(a);

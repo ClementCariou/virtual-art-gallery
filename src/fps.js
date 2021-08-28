@@ -19,8 +19,10 @@ const height = 2;
 const stepHeight = 0.03;
 const distToWalls = 0.5;
 const viewingDist = 3;
+const paintingSnapDist = 1.3;
 const yLimitTouch = 5;
 const touchDistLimit = 40;
+const rayStep = 4;
 const tpDuration = 1;
 
 const sdLine = (p, a, b, tmp1, tmp2) => {
@@ -59,7 +61,7 @@ const lerp = (x, a, b) => (1 - x) * a + x * b;
 const easeInOutQuad = x =>
 	x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 
-module.exports = function ({getGridSegments}, fovY) {
+module.exports = function ({getGridSegments, getGridParts}, fovY) {
 	var mouse = [0, Math.PI * 3 / 4];
 	var fmouse = [0, Math.PI * 3 / 4];
 	var dir = [0, 0, 0];
@@ -101,7 +103,6 @@ module.exports = function ({getGridSegments}, fovY) {
 			pointer.destroy();
 			pointer = false;
 			//document.querySelector("canvas").requestFullscreen();
-			return;
 		}
 		if(e.type === "touchstart"){
 			firstTouch = lastTouch = e.touches[0];
@@ -122,19 +123,18 @@ module.exports = function ({getGridSegments}, fovY) {
 				// project to the floor and the ceilling
 				let {intersection: floorPos, dist: floorDist} = planeProject(pos, touchDir, [0,1,0,0]);
 				let {dist: ceilingDist} = planeProject(pos, touchDir, [0,1,0,yLimitTouch]);
-				console.log(floorDist, ceilingDist);
+				//console.log(floorDist, ceilingDist);
 				// get the walls suceptibles to intersect with the raycast
 				let [x,,z] = pos;
 				let [dx,,dz] = touchDir;
 				dx /= Math.hypot(dx, dz);
 				dz /= Math.hypot(dx, dz);
 				let walls = getGridSegments(x, z);
-				for(let i = 0; i < touchDistLimit / 8; i++) {
-					x += dx * 8; z += dz * 8;
-					// select cells every 8m shifted 4m left and right to miss none
-					walls = [...walls, ...getGridSegments(x - dz*4, z + dx*4)];
-					walls = [...walls, ...getGridSegments(x + dz*4, z - dx*4)];
+				for(let i = 0; i < touchDistLimit / rayStep; i++) {
+					x += dx * rayStep; z += dz * rayStep;
+					walls = [...walls, ...getGridSegments(x, z)];
 				}
+				//console.log([... new Set(walls)]);
 				// project to walls
 				let intersections = [... new Set(walls)]
 					.map(([a, b]) => wallProject(pos, touchDir, a, b))
@@ -143,7 +143,19 @@ module.exports = function ({getGridSegments}, fovY) {
 				//console.log(intersections);
 				if (intersections.length !== 0) { 
 					// teleport to wall
-					const {intersection: [xpos,, zpos]} = intersections[0];
+					let {intersection: [xpos,, zpos]} = intersections[0];
+					const nearParts = getGridParts(xpos, zpos);
+					for(const [a, b] of nearParts) {
+						const midX = (a[0]+b[0]) / 2;
+						const midZ = (a[1]+b[1]) / 2;
+						//console.log(Math.hypot(xpos - midX, zpos - midZ));
+						// Snap to the front of the painting
+						if(Math.hypot(xpos - midX, zpos - midZ) < paintingSnapDist) {
+							xpos = midX;
+							zpos = midZ;
+							break;
+						}
+					}
 					vec3.copy(startPos, pos);
 					vec3.set(endPos, xpos, pos[1], zpos);
 				} else if(floorDist > 0) {
@@ -177,7 +189,7 @@ module.exports = function ({getGridSegments}, fovY) {
 				tpProgress = 0;
 			}
 			firstTouch = lastTouch = false;
-		} else if(e.type === "touchmove") {
+		} else if(e.type === "touchmove" && lastTouch) {
 			orientCamera(e.touches[0].pageX - lastTouch.pageX, 
 						 e.touches[0].pageY - lastTouch.pageY,
 						 touchSensibility);
