@@ -134,12 +134,12 @@ module.exports = function ({getGridSegments, getGridParts}, fovY) {
 					x += dx * rayStep; z += dz * rayStep;
 					walls = [...walls, ...getGridSegments(x, z)];
 				}
-				//console.log([... new Set(walls)]);
+				console.log([... new Set(walls)]);
 				// project to walls
 				let intersections = [... new Set(walls)]
 					.map(([a, b]) => wallProject(pos, touchDir, a, b))
 					.filter(({dist}) => dist > 0 && dist < Math.max(floorDist, ceilingDist) && dist < touchDistLimit);
-				intersections.sort((a, b) => a.dist < b.dist);
+				intersections.sort((a, b) => a.dist - b.dist);
 				//console.log(intersections);
 				if (intersections.length !== 0) { 
 					// teleport to wall
@@ -170,7 +170,7 @@ module.exports = function ({getGridSegments, getGridParts}, fovY) {
 					.map(([[ax, ay], [bx, by]]) => [[ax, height, ay], [bx, height, by]])
 					.map(([a, b]) => ({a, b, dist: sdLine(endPos, a, b, tmp1, tmp2)}))
 					.filter(({dist}) => dist < viewingDist);
-				collisions.sort((a, b) => a.dist < b.dist);
+				collisions.sort((a, b) => a.dist - b.dist);
 				//console.log(collisions);
 				if (collisions.length !== 0) {
 					for (let {a, b} of collisions) {
