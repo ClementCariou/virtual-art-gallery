@@ -1,4 +1,11 @@
 'use strict';
+
+const mapSize = 6; // Log2 of the grid size (keep the value between [1, 6])
+const cellSize = 8; // Size of the rooms
+const mapHeight = 7; // Height of the walls
+const wallThickness = 0.25; // Wall thickness
+const wallRemoval = 0.5; // Random wall removal proportion
+
 const transform = (a, r, tx, ty, o = 1) => a.map((v) => [(o * v[r] + tx) / 2, (o * v[1 - r] + ty) / 2]);
 
 function hilbert(n) {
@@ -13,7 +20,7 @@ function hilbert(n) {
 }
 
 function genBorder(n, w, m) {
-	w /= 2;
+	w = 0.5 - w / 4;
 	m *= Math.pow(4, n);
 	console.time('hilbert');
 	const points = hilbert(n);
@@ -114,7 +121,7 @@ function merge(dest, org, aStart, aEnd, bStart, bEnd) {
     return dest;
 };
 
-function reorderPlacements(placements) {
+function reorderPlacements(placements, r) {
     console.time('reorder placements');
     let places = placements;
     placements = [];
@@ -124,10 +131,10 @@ function reorderPlacements(placements) {
     //debugger;
     //let temp = [...Array(segs.length)].map((_, i) => i);
     while (i < j) {
-        let xi = Math.floor((places[i][0][0] + places[i][1][0]) / 32);
-        let yi = Math.floor((places[i][0][1] + places[i][1][1]) / 32);
-        let xj = Math.floor((places[j][0][0] + places[j][1][0]) / 32);
-        let yj = Math.floor((places[j][0][1] + places[j][1][1]) / 32);
+        let xi = Math.floor((places[i][0][0] + places[i][1][0]) / 4 / r);
+        let yi = Math.floor((places[i][0][1] + places[i][1][1]) / 4 / r);
+        let xj = Math.floor((places[j][0][0] + places[j][1][0]) / 4 / r);
+        let yj = Math.floor((places[j][0][1] + places[j][1][1]) / 4 / r);
         //console.log(i, j, xi, yi, xj, yj);
         if (xi == xj && yi == yj) {
             //console.log("converge");
@@ -163,21 +170,21 @@ function reorderPlacements(placements) {
 	return placements;
 }
 
-function genGrid(segments, n) {
+function genGrid(segments, n, r) {
 	console.time('gen grid');
-	let splittedSegments = splitSegments(segments);
-	const cellCount = Math.pow(2, n-1);
+	let splittedSegments = splitSegments(segments, r);
+	const cellCount = Math.pow(2, n);
 	let gridSegs = Array(cellCount * cellCount).fill().map(() => []);
 	let gridParts = Array(cellCount * cellCount).fill().map(() => []);
 	splittedSegments.map(({seg, parts}) =>
 		parts.map(part => {
 			const indexes = [
-				Math.round(part[0][0] / 8 - 0.5) +
-				Math.round(part[0][1] / 8 - 0.5) * cellCount,
-				Math.round(part[1][0] / 8 - 0.5) +
-				Math.round(part[1][1] / 8 - 0.5) * cellCount,
-				Math.round((part[0][0] + part[1][0]) / 16 - 0.5) +
-				Math.round((part[0][1] + part[1][1]) / 16 - 0.5) * cellCount
+				Math.round(part[0][0] / r - 0.5) +
+				Math.round(part[0][1] / r - 0.5) * cellCount,
+				Math.round(part[1][0] / r - 0.5) +
+				Math.round(part[1][1] / r - 0.5) * cellCount,
+				Math.round((part[0][0] + part[1][0]) / 2 / r - 0.5) +
+				Math.round((part[0][1] + part[1][1]) / 2 / r - 0.5) * cellCount
 			];
 			for(let i of indexes) {
 				if(!gridSegs[i]) gridSegs[i] = [];
@@ -189,40 +196,40 @@ function genGrid(segments, n) {
 	);
 	//console.log(gridSegs, gridParts);
 	const getGridSegments = (x, y) =>
-		gridSegs[Math.round(x/8 - 0.5) + Math.round(y/8 - 0.5) * cellCount] || [];
+		gridSegs[Math.round(x/r - 0.5) + Math.round(y/r - 0.5) * cellCount] || [];
 	const getGridParts = (x, y) =>
-		gridParts[Math.round(x/8 - 0.5) + Math.round(y/8 - 0.5) * cellCount] || [];
+		gridParts[Math.round(x/r - 0.5) + Math.round(y/r - 0.5) * cellCount] || [];
 	let placements = splittedSegments.flatMap(({parts}) => parts);
 	// Ignore short segments for painting placement
 	placements = placements.filter(([[ax, ay], [bx, by]]) => Math.hypot(ax - bx, ay - by) > 1);
-	placements = reorderPlacements(placements);
+	placements = reorderPlacements(placements, r);
 	const areas = placements.map(place => [
-        Math.round((place[0][0] + place[1][0]) / 16 + 0.5) * 8 - 4,
-        Math.round((place[0][1] + place[1][1]) / 16 + 0.5) * 8 - 4
+        (Math.round((place[0][0] + place[1][0]) / 2 / r + 0.5) - 0.5) * r,
+        (Math.round((place[0][1] + place[1][1]) / 2 / r + 0.5) - 0.5) * r
 	]);
 	const getAreaIndex = (x, y) => {
-		let index = areas.findIndex(a => Math.abs(a[0] - x) < 4 && Math.abs(a[1] - y) < 4)
+		let index = areas.findIndex(a => Math.abs(a[0] - x) < r / 2 && Math.abs(a[1] - y) < r / 2)
 		if (index === -1) // Middle of room => search neighbour cells
-			index = areas.findIndex(a => Math.abs(a[0] - x) + Math.abs(a[1] - y) < 8)
+			index = areas.findIndex(a => Math.abs(a[0] - x) + Math.abs(a[1] - y) < r)
 		return index;
 	};
 	console.timeEnd('gen grid');
 	return {getGridSegments, getGridParts, getAreaIndex, placements};
 }
 
-module.exports = function (n = 7, w = 0.9, m = 0.5, h = 7) {
-	let s = Math.pow(2, n + 2);
-	let border = genBorder(n, w, m).map((v) => [v[0] * s, v[1] * s]);
+module.exports = function (n = mapSize, r = cellSize, w = wallThickness, m = wallRemoval, h = mapHeight) {
+	let s = r * Math.pow(2, n);
+	let border = genBorder(n + 1, w, m).map((v) => [v[0] * s, v[1] * s]);
 	console.time('gen mesh');
 	let segments = border.slice(0, -1).map((p, i) => [p, border[i + 1]]);
 	let normal = segments
 		.map(([[x1, y1], [x2, y2]]) => [Math.sign(y1 - y2), 0, Math.sign(x2 - x1)])
 		.flatMap((v) => Array(4).fill(v));
 	let position = segments.flat().flatMap(([x, y]) => [[x, 0, y], [x, h, y]]);
-	let {getAreaIndex, getGridSegments, getGridParts, placements} = genGrid(segments, n);
+	let {getAreaIndex, getGridSegments, getGridParts, placements} = genGrid(segments, n, r);
 	//Add floor and ceilling
 	normal.push([0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]);
-	position.push([0, h, 0], [0, h, s], [s, h, 0], [s, h, s], [0, 0.01, 0], [s, 0.01, 0], [0, 0.01, s], [s, 0.01, s]);
+	position.push([0, h, 0], [0, h, s], [s, h, 0], [s, h, s], [0, 0, 0], [s, 0, 0], [0, 0, s], [s, 0, s]);
 	let elements = Array(position.length / 4)
 		.fill()
 		.flatMap((_, i) => [i * 4, i * 4 + 2, i * 4 + 1, i * 4 + 1, i * 4 + 2, i * 4 + 3]);
