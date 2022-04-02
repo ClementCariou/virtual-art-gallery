@@ -8,14 +8,12 @@ const text = require('./text');
 let paintingCache = {};
 let unusedTextures = [];
 
-const dynamicResThreshold = 2;
-
-function resolution(quality) {
-	const factor = !navigator.connection || navigator.connection.downlink > dynamicResThreshold ? 1 : 0.5;
-	return {
-		"low": 512,
-		"high": 1024
-	} [quality] * factor;
+const dynamicQualThreshold = 2;
+function dynamicQual(quality) {
+	if(!navigator.connection || navigator.connection.downlink < dynamicQualThreshold) {
+		quality = (quality == 'high') ? 'mid' : 'low';
+	}
+	return quality;
 }
 
 const resizeCanvas = document.createElement('canvas');
@@ -41,7 +39,7 @@ async function loadImage(regl, p, res) {
 	
 	let image, title;
 	try {
-		const data = await dataAccess.fetchImage(p, resolution(res));
+		const data = await dataAccess.fetchImage(p, dynamicQual(res));
 		title = data.title;
 		// Resize image to a power of 2 to use mipmap (faster than createImageBitmap resizing)
 		image = await createImageBitmap(data.image);
