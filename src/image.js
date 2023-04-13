@@ -86,10 +86,10 @@ module.exports = {
 		if (p.tex || p.loading)
 			return;
 		p.loading = true;
-		loadImage(regl, p, res).then(([tex, text]) => {
+		loadImage(regl, p, res).then(([tex, textGen]) => {
 			p.loading = false;
 			p.tex = tex;
-			p.text = text;
+			p.text = textGen(p.width);
 		});
 	},
 	unload: (p) => {
