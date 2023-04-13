@@ -8,21 +8,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: ["stable"]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          node-version: '12.x'
       - name: Install dependencies
         run: npm ci
       - name: Build
@@ -36,4 +28,7 @@ jobs:
         with:
           branch: gh-pages
           folder: build
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        permissions:
+          contents: write
