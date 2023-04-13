@@ -24,11 +24,8 @@ jobs:
           sed -i '/build.html/d' .gitignore
           sed -i '/images/images.json/d' .gitignore
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@4.1.2
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        permissions:
-          contents: write
+          token: ${{ secrets.GITHUB_TOKEN }}
