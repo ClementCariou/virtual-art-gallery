@@ -99,6 +99,7 @@ module.exports = function ({getGridSegments, getGridParts}, fovY) {
 	let lastTouch = false;
 	let touchTimestamp = 0;
 	const handleTouch = (e) => {
+		e.preventDefault();
 		if(pointer) {
 			pointer.destroy();
 			pointer = false;
@@ -197,9 +198,9 @@ module.exports = function ({getGridSegments, getGridParts}, fovY) {
 		}
 		//console.log(e);
 	}
-	window.addEventListener('touchstart', handleTouch);
-	window.addEventListener('touchmove', handleTouch);
-	window.addEventListener('touchend', handleTouch);
+	window.addEventListener('touchstart', handleTouch, {passive: false});
+	window.addEventListener('touchmove', handleTouch, {passive: false});
+	window.addEventListener('touchend', handleTouch, {passive: false});
 
 	// Keyboard input
 	var keys = {};
